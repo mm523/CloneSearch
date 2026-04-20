@@ -3,6 +3,8 @@ from scipy.special import gammainccinv,gammainc
 from scipy.special import gamma as gamma_fn
 from scipy.stats import ecdf
 
+### functions that assume a multivariate gaussian
+
 def P_r(r, s, n):
     # function that gives me theoretical P(r)
     # s = sigma
