@@ -1,6 +1,12 @@
 # CloneSearch: unbiased identification of responding T cell clones from longitudinal TCR sequencing
 
-Analysis and clustering of timeseries data. 
+CloneSearch provides an easy platform for analysis and clustering of timeseries data. 
+
+### Terms of use and disclaimers
+
+Please consult the [Terms of Use](TermsOfUse.md) before using this code. There is a pending patent application associated with this work; the patent application number is 63/972100.
+
+### Using CloneSearch
 
 The key functions are in the `functions` folder.
 
