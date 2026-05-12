@@ -1,10 +1,17 @@
+'''
+Functions to extract the parameters of the noise distribution 
+for g(f) transformation.
+'''
+
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
-from functions.noise_functions import calc_diffs, make_df, noise_func, var_btn_tps
-from functions.timeseries_functions import _get_counts
+from clonesearch.noise_functions import calc_diffs, make_df, noise_func, var_btn_tps
 
 def _make_output_df(N, avgs, dt, f):
+    '''
+    Make output dataframe with all information
+    '''
 
     N_df = make_df(N, 'N')
     avgs_df = make_df(avgs, 'avgs')
@@ -20,6 +27,9 @@ def _make_output_df(N, avgs, dt, f):
     return avgs_dt_freqs
 
 def prepare_fit_data(avgs_dt_freqs):
+    '''
+    Pre-process data for fitting the parameters
+    '''
     X = avgs_dt_freqs['freqs']
     Y = avgs_dt_freqs['avgs']
 
@@ -32,6 +42,9 @@ def prepare_fit_data(avgs_dt_freqs):
     return fit_freqs, fit_avgs
 
 def _get_fit(x, y):
+    '''
+    Fit sigma and b parameters
+    '''
     y = np.log(y)
     # Why am I bounding sigma at 1?
     myfit = curve_fit(noise_func, x, y, bounds = [(0,0),(1,np.inf)])
@@ -39,14 +52,19 @@ def _get_fit(x, y):
 
     return fit_s, fit_b
 
-def get_sigma_and_beta(freq_info, sample_order, tp_dict, perc_step = 10, min_perc = 0):
+def get_sigma_and_b(freq_info, sample_order, tp_dict, perc_step = 10, min_perc = 0):
+    '''
+    Get sigma and b parameters from fluctuations
+    '''
+    avgs, dt, f, percentiles, N = calc_diffs(
+                                        var_btn_tps, freq_info, sample_order, tp_dict,
+                                        use_percentiles=True, perc_step=perc_step,
+                                        min_perc = min_perc
+                                        )
 
-    avgs, dt, f, percentiles, N = calc_diffs(var_btn_tps, freq_info, sample_order, tp_dict, 
-                                            use_percentiles=True, perc_step=perc_step, min_perc = min_perc)
-    
     avgs_dt_freqs = _make_output_df(N, avgs, dt, f)
     fit_freqs, fit_avgs = prepare_fit_data(avgs_dt_freqs)
-    
+
     fit_s, fit_b = _get_fit(fit_freqs, fit_avgs)
-    
+
     return fit_s, fit_b
