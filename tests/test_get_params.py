@@ -4,7 +4,7 @@ Test parameter extraction from noise function
 
 import pandas as pd
 import numpy as np
-from clonesearch import get_params as params
+from clonesearch.utils import get_params as params
 
 class TestMakeDf:
     '''

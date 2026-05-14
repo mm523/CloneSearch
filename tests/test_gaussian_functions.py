@@ -2,7 +2,7 @@
 Test functions to find outliers
 '''
 import numpy as np
-from clonesearch import gaussian_outliers as gauss
+from clonesearch.utils import gaussian_outliers as gauss
 
 class TestRadiusFunctions:
     '''

@@ -6,7 +6,7 @@ for g(f) transformation.
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
-from clonesearch.noise_functions import calc_diffs, make_df, noise_func, var_btn_tps
+from clonesearch.utils.noise_functions import calc_diffs, make_df, noise_func, var_btn_tps
 
 def _make_output_df(N, avgs, dt, f):
     '''

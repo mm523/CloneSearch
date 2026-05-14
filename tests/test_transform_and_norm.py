@@ -3,7 +3,7 @@ Test that behaviour of g(f) is as expected
 '''
 
 import numpy as np
-from clonesearch import normalisation_functions as norm
+from clonesearch.utils import normalisation_functions as norm
 
 class TestNewTransform:
     def test_get_g_of_f(self):

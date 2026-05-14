@@ -13,9 +13,9 @@ from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.cluster.hierarchy import optimal_leaf_ordering, leaves_list
 
-from clonesearch.get_params import get_sigma_and_b
-from clonesearch.normalisation_functions import noise_by_size_norm, log10_transform
-from clonesearch.gaussian_outliers import find_gaussian_outliers
+from clonesearch.utils.get_params import get_sigma_and_b
+from clonesearch.utils.normalisation_functions import noise_by_size_norm, log10_transform
+from clonesearch.utils.gaussian_outliers import find_gaussian_outliers
 
 
 def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical_threshold):

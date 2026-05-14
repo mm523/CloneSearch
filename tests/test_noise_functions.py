@@ -5,7 +5,7 @@ Test functions to calculate noise
 import pandas as pd
 import numpy as np
 import pytest
-from clonesearch import noise_functions as noise
+from clonesearch.utils import noise_functions as noise
 
 class TestPercentileCalculation:
     def test_get_vals_for_perc(self):
