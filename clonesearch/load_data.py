@@ -1,8 +1,11 @@
-from optparse import OptionParser
-from pathlib import Path
-import pandas as pd
-
 '''
+The following script loads TCR Vb samples as specified in a metadata file.
+The samples are processed to remove non-productive TCR sequences. 
+All samples are then joined together in a single dataframe which is saved as a .csv.
+In the output dataframe, each TCR is on a row, and its frequencies in each sample are in the columns.
+The TCR clone can be defined by any combination of columns.
+We recommend using the CDR3 nucleotide sequence, the V and the J gene information.
+
 The following arguments are user specified and are needed: 
 - --metadata: path to metadata file
 - --cdr3aa: Column name for CDR3aa sequence information in TCRVb sequencing file. 
@@ -24,6 +27,10 @@ The following arguments can be toggled by the user:
 - -i/--input-folder: Path to TCR Vb sequencing files. Defaults to current folder.
 - -o/--output-folder: Path to TCR Vb sequencing files. Defaults to current folder.
 '''
+
+from optparse import OptionParser
+from pathlib import Path
+import pandas as pd
 
 def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list):
 
@@ -65,9 +72,11 @@ def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample
                     index = ['clone_id'],
                     columns = ['sample'],
                     values = ['counts']).fillna(0)
-    samples_wide.reset_index().to_csv(output_path/'counts_all_clones.csv.gz')
 
     print('All data loaded and formatted into counts per TCR.')
+    samples_wide = samples_wide.reset_index()
+    samples_wide.index = samples_wide['clone_id']
+    samples_wide = samples_wide.drop('clone_id', axis = 1)
     return samples_wide
 
 def parse_all_arguments():
@@ -105,6 +114,8 @@ def parse_all_arguments():
                            'Used to filter on productive sequences.')
 
     (options, args) = parser.parse_args()
+
+    # check all needed arguments are there
     if options.input_path is None:
         parser.error('The --input-folder argument is needed.')
     if options.metadata is None:
@@ -128,13 +139,14 @@ def main():
                  args_dict['counts_col'], args_dict['cdr3aa_col']]
     columns = [c for c in columns if c is not None]
 
-    clone_id_cols = [args_dict['v_col'], args_dict['j_col'], args_dict['cdr3_col']]
+    clone_id_cols = [args_dict['cdr3_col'], args_dict['v_col'], args_dict['j_col']]
     clone_id_cols = [c for c in clone_id_cols if c is not None]
 
     metadata = pd.read_csv(args_dict['metadata'])
     sample_list = metadata['sample'].tolist()
 
-    load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
+    samples_wide = load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
+    samples_wide.to_csv(output_path/'counts_all_clones.csv.gz')
 
 if __name__ == '__main__':
     main()

@@ -43,7 +43,6 @@ def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical
             use_FDR=use_FDR
             )
 
-    print('Number of outliers: ', sum(outlier_vector))
     pca_fit = pd.DataFrame(pca_fit, index = qc_clones)
     pca_fit['radius'] = R
 
@@ -129,6 +128,8 @@ def CloneSearch(X_counts,
             pval_or_fdr, statistical_threshold
             )
     outlier_list = qc_clones[outlier_vector]
+
+    X_transformed = pd.DataFrame(X_transformed, index = qc_clones, columns = sample_order)
 
     return outlier_list, pca_fit, R_thresh, X_transformed
 
