@@ -2,7 +2,7 @@
 The following script loads TCR Vb samples as specified in a metadata file using `load_data.py`.
 It then processes the samples to find outlier TCR trajectories. 
 It outputs 3 files: 
-1. a .csv file where for each TCR that passes QC the transformed sequences in each timepoint are given,
+1. a .csv file with transformed sequences for each TCR in each timepoint,
 2. a .csv file with the PCA projections for each TCR,
 3. a list of TCR outliers, given the identifiers provided.
 
@@ -36,7 +36,8 @@ The following arguments can be toggled by the user:
               Options are ["strictQC", "looseQC", "noQC"]. 
               With "strictQC", clones are kept if present at count > 2 in > 1 timepoint.
               With "looseQC", clones are kept if present at count > 0 in > 1 timepoint.
-              With "noQC", all clones are included. This makes the implementation very slow and may give noisier results.
+              With "noQC", all clones are included. 
+              This makes the implementation very slow and may give noisier results.
               Defaults to "strictQC".
 - --transform: Which transformation to apply to the frequencies. 
                Options are ["g(f)", "log"]. Defaults to "g(f)".
@@ -99,9 +100,10 @@ def parse_all_arguments():
                       choices = ['strictQC', 'looseQC', 'noQC'],
                       help='How to select which clones are included in the analysis. ' \
                            'Options are ["strictQC", "looseQC", "noQC"]. ' \
-                           'With "strictQC", clones are kept if present at count > 2 in > 1 timepoint.' \
-                           'With "looseQC", clones are kept if present at count > 0 in > 1 timepoint.' \
-                           'With "noQC", all clones are included. This makes the implementation very slow and may give noisier results.' \
+                           'With "strictQC", keep clones if present at count>2 in >1 timepoint.' \
+                           'With "looseQC", keep clones if present at count>0 in >1 timepoint.' \
+                           'With "noQC", all clones are included. ' \
+                           'This makes the implementation very slow and may give noisier results.' \
                            'Defaults to "strictQC".')
     parser.add_option('--transform', default='g(f)',
                       dest='which_transform', type='choice',
@@ -167,8 +169,6 @@ def main():
         for c in outlier_list:
             f.write(c + '\n')
     print(f'Outliers saved to {output_path}')
-
-    return
 
 if __name__ == '__main__':
     main()
