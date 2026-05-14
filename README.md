@@ -60,7 +60,7 @@ The following arguments can be toggled by the user:
               Defaults to `strictQC`.
 - `--transform`: Which transformation to apply to the frequencies. Options are `["g", "log"]`. Defaults to `g`, which implements $g(f)$.
 
-#### Python API
+#### Python import
 
 The key functions are in the `functions` folder.
 
