@@ -57,7 +57,7 @@ def CloneSearch(X_counts,
                 pval_or_fdr = 'fdr',
                 which_beta = 'constantBeta',
                 which_QC = 'strictQC',
-                which_transform = 'g(f)'
+                which_transform = 'g'
                 ):
     '''
     Calculation of outliers, starting from a table of counts.
@@ -105,7 +105,7 @@ def CloneSearch(X_counts,
 
     freq_info = pd.DataFrame(freqs_qc, index = qc_clones, columns=sample_order)
 
-    if which_transform == 'g(f)':
+    if which_transform == 'g':
         sigma, fit_b = get_sigma_and_b(freq_info, sample_order, tp_dict)
         fit_b = max(fit_b, (1/N_r).min())
         beta_factor = N_r*fit_b

@@ -14,9 +14,9 @@ The following arguments are user specified and are needed:
 - --counts: Column name containing count information
 
 The following arguments can be 'None' and will determine how a TCR clonotype is defined:
-- -v/--V-column: Column name containing V gene information. 
+- -v: Column name containing V gene information. 
                  If not provided, it will not be used to define a TCR clone.
-- -j/--J-column: Column name containing J gene information. 
+- -j: Column name containing J gene information. 
                  If not provided, it will not be used to define a TCR clone.
 - --cdr3: Column name containing CDR3 gene information. 
           If not provided, it will not be used to define a TCR clone. 
@@ -40,7 +40,7 @@ The following arguments can be toggled by the user:
               This makes the implementation very slow and may give noisier results.
               Defaults to "strictQC".
 - --transform: Which transformation to apply to the frequencies. 
-               Options are ["g(f)", "log"]. Defaults to "g(f)".
+               Options are ["g", "log"]. Defaults to "g", which implements g(f).
 '''
 
 from optparse import OptionParser
@@ -62,11 +62,12 @@ def parse_all_arguments():
                       choices=['tab', 'comma'],
                       help='Declare TCR Vb file delimiter. ' \
                            'Defaults to tab. Options: ["tab", "comma"].')
-    parser.add_option('-v', '--V-column',
+    parser.add_option('-v',
                       default=None, dest='v_col',
                       help='Column name containing V gene information. ' \
                            'If not provided, it will not be used to define a TCR clone.')
-    parser.add_option('-j', '--J-column', default=None,
+    parser.add_option('-j',
+                      default=None,
                       dest='j_col',
                       help='Column name containing J gene information. ' \
                            'If not provided, it will not be used to define a TCR clone.')
@@ -105,11 +106,11 @@ def parse_all_arguments():
                            'With "noQC", all clones are included. ' \
                            'This makes the implementation very slow and may give noisier results.' \
                            'Defaults to "strictQC".')
-    parser.add_option('--transform', default='g(f)',
+    parser.add_option('--transform', default='g',
                       dest='which_transform', type='choice',
-                      choices=['g(f)', 'log'],
+                      choices=['g', 'log'],
                       help='Which transformation to apply to the frequencies. ' \
-                           'Options are ["g(f)", "log"]. Defaults to "g(f)".')
+                           'Options are ["g(f)", "log"]. Defaults to "g" which implements g(f).')
 
     (options, args) = parser.parse_args()
 
