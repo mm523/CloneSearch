@@ -1,14 +1,17 @@
 '''
 Test that selected outliers stay as expected by running end-to-end
 '''
-
+import pytest, os
 from pathlib import Path
 import pandas as pd
 from clonesearch.load_data import load_data
 from clonesearch.CloneSearch import CloneSearch
 
 class TestCloneSearch:
-
+    @pytest.mark.skipif(
+        not os.path.exists('test_data/expected_output/outliers.txt'),
+        reason="test data file not available"
+    )
     def test_cloneserch_overall(self):
 
         expected_outliers = pd.read_csv(
