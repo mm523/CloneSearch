@@ -34,6 +34,10 @@ from pathlib import Path
 import pandas as pd
 
 def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list):
+    if type(input_path) == str:
+        input_path = Path(input_path)
+    if type(output_path) == str:
+        output_path = Path(output_path)
 
     if not input_path.exists():
         raise ValueError(f'Path {input_path} does not exist')
