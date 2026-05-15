@@ -4,7 +4,8 @@ __version__ = version("clonesearch")
 
 def main():
     parser = argparse.ArgumentParser(
-        description="CloneSearch: identify responding T cell clones from longitudinal TCR sequencing"
+        description="CloneSearch: identifying responding T cell clones" \
+                    " from longitudinal TCR sequencing"
     )
     parser.add_argument("--version", action="version", version=f"clonesearch {__version__}")
     

@@ -1,8 +1,9 @@
 '''
 Test that selected outliers stay as expected by running end-to-end
 '''
-import pytest, os
+import os
 from pathlib import Path
+import pytest
 import pandas as pd
 from clonesearch.load_data import load_data
 from clonesearch.CloneSearch import CloneSearch
@@ -32,11 +33,11 @@ class TestCloneSearch:
         clone_id_cols = ['clonalSequence','bestVGene', 'bestJGene']
         sample_list = metadata['sample'].tolist()
 
-        counts_df = load_data(input_path, output_path, delimiter, 
+        counts_df = load_data(input_path, output_path, delimiter,
                               columns, clone_id_cols, sample_list)
 
         sample_order = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
-        timepoint_dictionary = dict(zip(metadata['sample'].tolist(), 
+        timepoint_dictionary = dict(zip(metadata['sample'].tolist(),
                                         metadata['timepoint'].tolist()))
         all_clones = counts_df.index.tolist()
         Nr = counts_df.sum(axis=0).values

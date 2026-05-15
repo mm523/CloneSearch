@@ -2,7 +2,8 @@
 The following script loads TCR Vb samples as specified in a metadata file.
 The samples are processed to remove non-productive TCR sequences. 
 All samples are then joined together in a single dataframe which is saved as a .csv.
-In the output dataframe, each TCR is on a row, and its frequencies in each sample are in the columns.
+In the output dataframe, each TCR is on a row, 
+and its frequencies in each sample are in the columns.
 The TCR clone can be defined by any combination of columns.
 We recommend using the CDR3 nucleotide sequence, the V and the J gene information.
 
@@ -25,7 +26,7 @@ The following arguments can be toggled by the user:
 - -d/--delimiter: Delimiter used in TCR Vb sequencing files. 
                   Defaults to tab. Options: ["tab", "comma"]
 - -i/--input-folder: Path to TCR Vb sequencing files. Defaults to current folder.
-- -o/--output-folder: Path to TCR Vb sequencing files. Defaults to current folder.
+- -o/--output-folder: Path to save results. Defaults to current folder.
 '''
 
 from optparse import OptionParser
@@ -84,9 +85,10 @@ def parse_all_arguments():
 
     parser.add_option('--metadata', dest='metadata', help='path to metadata file')
     parser.add_option('-i', '--input-folder', default = '.',
-                      dest='input_path', help='path to TCR Vb sequencing files')
+                      dest='input_path',
+                      help='Path to TCR Vb sequencing files. Defaults to current folder.')
     parser.add_option('-o', '--output-folder', default = '.',
-                      dest='output_path', help='path to save results')
+                      dest='output_path', help='Path to save results. Defaults to current folder.')
     parser.add_option('-d', '--delimiter', default='tab',
                       type='choice', dest='delimiter',
                       choices=['tab', 'comma'],
@@ -145,7 +147,8 @@ def main():
     metadata = pd.read_csv(args_dict['metadata'])
     sample_list = metadata['sample'].tolist()
 
-    samples_wide = load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
+    samples_wide = load_data(input_path, output_path, delimiter,
+                             columns, clone_id_cols, sample_list)
     samples_wide.to_csv(output_path/'counts_all_clones.csv.gz')
 
 if __name__ == '__main__':
