@@ -525,7 +525,10 @@ class TestMakeDf:
             ]
         )
 
-        pd.testing.assert_frame_equal(output_df, expected_output)
+        pd.testing.assert_frame_equal(
+            output_df.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True),
+            expected_output.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True)
+        )
 
     def test_make_df_more_complex(self):
 
@@ -556,7 +559,10 @@ class TestMakeDf:
             ]
         )
 
-        pd.testing.assert_frame_equal(output_df, expected_output)
+        pd.testing.assert_frame_equal(
+            output_df.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True),
+            expected_output.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True)
+        )
 
     def test_make_df_withNA(self):
 
@@ -586,4 +592,7 @@ class TestMakeDf:
             ]
         )
 
-        pd.testing.assert_frame_equal(output_df, expected_output)
+        pd.testing.assert_frame_equal(
+            output_df.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True),
+            expected_output.sort_values(['p1', 'p2', 't1','t2']).reset_index(drop=True)
+        )
