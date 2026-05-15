@@ -42,6 +42,7 @@ Repository = "https://github.com/mm523/CloneSearch"
 clonesearch = "clonesearch.cli:main"
 clonesearch-generate_counts_table = "clonesearch.load_data:main"
 clonesearch-find_outliers = "clonesearch.outlier_selection:main"
+clonesearch-clustering = "clonesearch.clustering:main"
 
 [tool.setuptools]
 license-files = ["TermsOfUse.md"]
