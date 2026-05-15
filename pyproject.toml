@@ -47,3 +47,4 @@ include = ["clonesearch*"]
 
 [tool.setuptools.package-data]
 "" = ["README.md", "TermsOfUse.md"]
+license-files = ["TermsOfUse.md"]
