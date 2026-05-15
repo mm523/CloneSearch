@@ -11,7 +11,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         deps:
           - numpy: "1.23"
-            pandas: "1.0"
+            pandas: "1.2"
             scikit-learn: "0.24"
             scipy: "1.11"
           - numpy: "latest"
@@ -31,7 +31,7 @@ jobs:
         if: matrix.deps.scipy == '1.11'
         run: |
           pip install -e ".[dev]"
-          pip install "numpy==1.23" "pandas==1.0" "scikit-learn==0.24" "scipy==1.11"
+          pip install "numpy==1.23" "pandas==1.2" "scikit-learn==0.24" "scipy==1.11"
 
       - name: Install latest dependencies
         if: matrix.deps.scipy == 'latest'
