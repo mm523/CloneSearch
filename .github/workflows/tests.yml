@@ -12,7 +12,7 @@ jobs:
         deps:
           - numpy: "1.23"
             pandas: "1.2"
-            scikit-learn: "0.24"
+            scikit-learn: "1.2"
             scipy: "1.11.1"
           - numpy: "latest"
             pandas: "latest"
@@ -20,10 +20,10 @@ jobs:
             scipy: "latest"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -31,7 +31,7 @@ jobs:
         if: matrix.deps.scipy == '1.11.1'
         run: |
           pip install -e ".[dev]"
-          pip install "numpy==1.23" "pandas==1.2" "scikit-learn==0.24" "scipy==1.11.1"
+          pip install "numpy==1.23" "pandas==1.2" "scikit-learn==1.2" "scipy==1.11.1"
 
       - name: Install latest dependencies
         if: matrix.deps.scipy == 'latest'
