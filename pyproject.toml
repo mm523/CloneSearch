@@ -29,7 +29,9 @@ dependencies = [
     "numpy>=1.24",
     "pandas>=1.5",
     "scikit-learn>=1.2",
-    "scipy>=1.10",
+    "scipy>=1.11",
+    "matplotlib",
+    "seaborn"
 ]
 
 [project.urls]
@@ -41,10 +43,12 @@ clonesearch = "clonesearch.cli:main"
 clonesearch-generate_counts_table = "clonesearch.load_data:main"
 clonesearch-find_outliers = "clonesearch.outlier_selection:main"
 
+[tool.setuptools]
+license-files = ["TermsOfUse.md"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["clonesearch*"]
 
-[tool.setuptools.package-data]
-"" = ["README.md", "TermsOfUse.md"]
-license-files = ["TermsOfUse.md"]
+[project.optional-dependencies]
+dev = ["pytest"]
