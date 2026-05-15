@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+    branches: [pipify]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        deps:
+          - numpy: "1.17"
+            pandas: "1.0"
+            scikit-learn: "0.24"
+            scipy: "1.11"
+          - numpy: "latest"
+            pandas: "latest"
+            scikit-learn: "latest"
+            scipy: "latest"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install minimum dependencies
+        if: matrix.deps.scipy == '1.11'
+        run: |
+          pip install -e ".[dev]"
+          pip install "numpy==1.17" "pandas==1.0" "scikit-learn==0.24" "scipy==1.11"
+
+      - name: Install latest dependencies
+        if: matrix.deps.scipy == 'latest'
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest
