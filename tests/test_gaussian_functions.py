@@ -10,14 +10,13 @@ class TestRadiusFunctions:
     '''
     def test_P_r(self):
         x = [0.1, 3, 5, 10, 15]
-        s = 1
         n = 10
 
         Pr = np.array([
             2.59118E-12, 0.569422862, 0.018954738, 5.02279E-16, 1.38791E-41
         ])
 
-        calculated_Pr = gauss.P_r(x, s, n)
+        calculated_Pr = gauss.P_r(x, n)
 
         np.testing.assert_allclose(calculated_Pr, Pr, atol = 1e-6)
 
