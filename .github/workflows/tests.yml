@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         deps:
-          - numpy: "1.17"
+          - numpy: "1.23"
             pandas: "1.0"
             scikit-learn: "0.24"
             scipy: "1.11"
