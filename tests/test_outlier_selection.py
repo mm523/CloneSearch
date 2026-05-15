@@ -43,7 +43,7 @@ class TestCloneSearch:
         pval_or_fdr = 'fdr'
         which_beta = 'constantBeta'
         which_QC = 'strictQC'
-        which_transform = 'g(f)'
+        which_transform = 'g'
 
         outlier_list, pca_fit, R_thresh, X_transformed = \
                     CloneSearch(counts, Nr, all_clones,
