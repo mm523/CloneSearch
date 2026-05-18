@@ -1,4 +1,6 @@
 __pycache__
 .DS_Store
-test_data/
+test_data/output
+test_data/expected_output
+*gz
 *.egg*
