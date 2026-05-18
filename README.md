@@ -39,7 +39,9 @@ CloneSearch can be used as a [command line tool](#command-line), or [imported in
 
 #### Python import
 
-A sample Jupyter notebook with all the steps for outlier selection is provided in XXXX.
+Two tutorials are provided to run CloneSearch in a Jupyter notebook in the `examples` folder:
+1. [`tutorial.ipynb`](examples/tutorial.ipynb) uses the key functions to show end-to-end use of CloneSearch for identification and clustering of outliers
+2. [`tutorial_advanced.ipynb`](examples/tutorial_advanced.ipynb) breaks down the two key functions into step to plot the diagnostic plots to understand the inner workings of the CloneSearch function and parameter fitting to the noise profile.
 
 The key functions are in the `clonesearch.CloneSearch` folder.
 
