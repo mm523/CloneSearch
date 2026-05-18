@@ -77,11 +77,13 @@ def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample
                     index = ['clone_id'],
                     columns = ['sample'],
                     values = ['counts']).fillna(0)
+    samples_wide.columns = [col[1] for col in samples_wide.columns]
 
     print('All data loaded and formatted into counts per TCR.')
     samples_wide = samples_wide.reset_index()
     samples_wide.index = samples_wide['clone_id']
     samples_wide = samples_wide.drop('clone_id', axis = 1)
+    samples_wide = samples_wide.T.loc[sample_list].T
     return samples_wide
 
 def parse_all_arguments():
@@ -149,7 +151,7 @@ def main():
     clone_id_cols = [c for c in clone_id_cols if c is not None]
 
     metadata = pd.read_csv(args_dict['metadata'])
-    sample_list = metadata['sample'].tolist()
+    sample_list = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
 
     samples_wide = load_data(input_path, output_path, delimiter,
                              columns, clone_id_cols, sample_list)
