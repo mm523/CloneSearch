@@ -1,0 +1,8 @@
+sample,timepoint
+M_15_F1_beta.txt.gz,15
+M_30_F1_beta.txt.gz,30
+M_37_F1_beta.txt.gz,37
+M_45_F1_beta.txt.gz,45
+M_85_F1_beta.txt.gz,85
+M_F1_2018_beta.txt.gz,-10
+M_F1_2019_beta.txt.gz,-5
