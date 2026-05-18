@@ -10,6 +10,8 @@ Please consult the [Terms of Use](TermsOfUse.md) before using this code. There i
 
 #### Installation from pip
 
+Coming soon!
+
 #### Installation from GitHub
 
 Clone the repository and install in editable mode:
