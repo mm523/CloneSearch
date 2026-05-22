@@ -19,6 +19,7 @@ Clone the repository and install in editable mode:
 ```
 git clone https://github.com/mm523/CloneSearch
 cd CloneSearch
+git checkout pipify
 pip install -e .
 ```
 This installs the package locally so you can import it from anywhere in your Python environment, and any changes you make to the source are reflected immediately without reinstalling.
