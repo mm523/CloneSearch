@@ -7,7 +7,7 @@ name = "clonesearch"
 version = "0.1.0"
 description = "CloneSearch: unbiased identification of responding T cell clones from longitudinal TCR sequencing"
 readme = "README.md"
-license = { text = "See TermsOfUse.md — patent pending (application 63/972100)" }
+license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.9"
 authors = [
     {name = "Martina Milighetti", email = "martina.milighetti15@gmail.com"}
@@ -45,7 +45,7 @@ clonesearch-find_outliers = "clonesearch.outlier_selection:main"
 clonesearch-clustering = "clonesearch.clustering:main"
 
 [tool.setuptools]
-license-files = ["TermsOfUse.md"]
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["."]
