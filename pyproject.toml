@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clonesearch"
+version = "0.1.0"
+description = "CloneSearch: unbiased identification of responding T cell clones from longitudinal TCR sequencing"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.9"
+authors = [
+    {name = "Martina Milighetti", email = "martina.milighetti15@gmail.com"}
+]
+maintainers = [
+    {name = "Martina Milighetti", email = "martina.milighetti15@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.9",
+]
+dependencies = [
+    "numpy>=1.23",
+    "pandas>=1.5",
+    "scikit-learn>=1.2",
+    "scipy>=1.11",
+    "matplotlib",
+    "seaborn"
+]
+
+[project.urls]
+Homepage = "https://github.com/mm523/CloneSearch"
+Repository = "https://github.com/mm523/CloneSearch"
+
+[project.scripts]
+clonesearch = "clonesearch.cli:main"
+clonesearch-generate_counts_table = "clonesearch.load_data:main"
+clonesearch-find_outliers = "clonesearch.outlier_selection:main"
+clonesearch-clustering = "clonesearch.clustering:main"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["clonesearch*"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
