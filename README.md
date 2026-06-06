@@ -1,6 +1,6 @@
 # CloneSearch: unbiased identification of responding T cell clones from longitudinal TCR sequencing
 
-CloneSearch provides an easy platform for analysis and clustering of timeseries data. 
+CloneSearch provides an easy platform for analysis and clustering of timeseries data as described in https://www.biorxiv.org/content/10.64898/2026.05.29.728700v1.
 
 ### Terms of use and disclaimers
 
