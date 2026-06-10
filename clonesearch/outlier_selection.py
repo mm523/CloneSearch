@@ -91,9 +91,9 @@ def parse_all_arguments():
                       choices=['fdr', 'pvalue'],
                       help='Whether to use p-value or FDR selection. ' \
                            'Defaults to FDR. Options: ["fdr", "pvalue"].')
-    parser.add_option('--beta-param-constant', default=True,
+    parser.add_option('--beta-param-constant', default='True',
                       dest='beta_param', type='choice',
-                      choices=[True, False],
+                      choices=['True', 'False'],
                       help='Whether to keep the beta parameter constant across samples. ' \
                            'Defaults to True. We recommend leaving this to True.')
     parser.add_option('--which-QC', default='strictQC',
@@ -121,6 +121,8 @@ def parse_all_arguments():
         parser.error('The --metadata argument is needed.')
     if options.cdr3aa_col is None:
         parser.error('The --CDR3aa argument is needed to filter on productive sequences.')
+    if options.counts_col is None:
+        parser.error('The --counts argument is needed.')
 
     return vars(options)
 
@@ -145,6 +147,8 @@ def main():
     counts_df = load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
     sample_order = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
     timepoint_dictionary = dict(zip(metadata['sample'].tolist(), metadata['timepoint'].tolist()))
+
+    counts_df = counts_df[sample_order] # re-order to ensure same order as sample order
     all_clones = counts_df.index.tolist()
     Nr = counts_df.sum(axis=0).values
     counts = counts_df.values
@@ -152,7 +156,7 @@ def main():
 
     stat_thresh = args_dict['stat_thresh']
     pval_or_fdr = args_dict['pval_or_fdr'].lower()
-    which_beta = 'constantBeta' if args_dict['beta_param'] else 'constantB'
+    which_beta = 'constantBeta' if args_dict['beta_param'] == 'True' else 'constantB'
     which_QC = args_dict['which_QC']
     which_transform = args_dict['which_transform']
 

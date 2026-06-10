@@ -31,10 +31,15 @@ def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical
     pca = PCA(whiten = True)
     pca_fit = pca.fit_transform(normed_array)
 
-    if pval_or_fdr.lower() == 'pval':
+    if pval_or_fdr.lower() == 'pvalue':
         use_FDR = False
     elif pval_or_fdr.lower() == 'fdr':
         use_FDR = True
+    else:
+        raise ValueError(
+            f'pval_or_fdr="{pval_or_fdr}" not recognised. '
+            'Choose "fdr" or "pvalue".'
+        )
 
     R, outlier_vector, R_thresh = \
         find_gaussian_outliers(
