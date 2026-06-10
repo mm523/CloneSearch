@@ -54,7 +54,9 @@ def find_fdr_thresh(radii, dims, fdr):
     ecdf_real = ecdf(radii)
     try:
         idx = np.where((1-theory)/(1-ecdf_real.cdf.probabilities) < fdr)[0][0]
-    except:
+    except IndexError:
+        # No radius satisfies the FDR criterion; fall back to the maximum
+        # observed radius so that no clones are flagged as outliers.
         idx = -1
     radius_thresh = sorted_r[idx]
 
