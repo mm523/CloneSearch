@@ -84,6 +84,7 @@ def parse_all_arguments():
                       help='Column name containing CDR3aa information. ' \
                            'Used to filter on productive sequences.')
     parser.add_option('--stat-thresh', default=0.05,
+                      type='float',
                       dest='stat_thresh',
                       help='p-value or FDR threshold to use for outlier selection.')
     parser.add_option('--pval-or-fdr', default='fdr',

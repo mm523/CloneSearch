@@ -73,6 +73,7 @@ def parse_all_arguments():
                       )
     parser.add_option('--distance-threshold',
                       default=0.61,
+                      type='float',
                       dest = 'distance_threshold',
                       help = 'Distance threshold to use to define clusters. ' \
                       'Passed to scipy.cluster.hierarchy.fcluster. ' \
