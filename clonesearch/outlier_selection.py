@@ -121,6 +121,8 @@ def parse_all_arguments():
         parser.error('The --metadata argument is needed.')
     if options.cdr3aa_col is None:
         parser.error('The --CDR3aa argument is needed to filter on productive sequences.')
+    if options.counts_col is None:
+        parser.error('The --counts argument is needed.')
 
     return vars(options)
 
