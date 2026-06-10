@@ -145,6 +145,8 @@ def main():
     counts_df = load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
     sample_order = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
     timepoint_dictionary = dict(zip(metadata['sample'].tolist(), metadata['timepoint'].tolist()))
+
+    counts_df = counts_df[sample_order] # re-order to ensure same order as sample order
     all_clones = counts_df.index.tolist()
     Nr = counts_df.sum(axis=0).values
     counts = counts_df.values
