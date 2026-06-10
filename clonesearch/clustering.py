@@ -38,7 +38,8 @@ def parse_all_arguments():
     parser.add_option('-i', '--input',
                       dest='input',
                       help='Path to file to use for calculating distances')
-    parser.add_option('--normalise', default=True,
+    parser.add_option('--normalise', default='True',
+                      choices=['True', 'False'],
                       dest='norm',
                       help='Whether to normalise each row in the input by the max. ' \
                       'Defaults to True. ' \
@@ -98,7 +99,7 @@ def main():
     else:
         input_df = complete_df.copy()
 
-    if args_dict['norm']:
+    if args_dict['norm'] == 'True':
         index = input_df.index
         columns = input_df.columns
         X = input_df.values

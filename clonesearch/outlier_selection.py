@@ -91,9 +91,9 @@ def parse_all_arguments():
                       choices=['fdr', 'pvalue'],
                       help='Whether to use p-value or FDR selection. ' \
                            'Defaults to FDR. Options: ["fdr", "pvalue"].')
-    parser.add_option('--beta-param-constant', default=True,
+    parser.add_option('--beta-param-constant', default='True',
                       dest='beta_param', type='choice',
-                      choices=[True, False],
+                      choices=['True', 'False'],
                       help='Whether to keep the beta parameter constant across samples. ' \
                            'Defaults to True. We recommend leaving this to True.')
     parser.add_option('--which-QC', default='strictQC',
@@ -152,7 +152,7 @@ def main():
 
     stat_thresh = args_dict['stat_thresh']
     pval_or_fdr = args_dict['pval_or_fdr'].lower()
-    which_beta = 'constantBeta' if args_dict['beta_param'] else 'constantB'
+    which_beta = 'constantBeta' if args_dict['beta_param'] == 'True' else 'constantB'
     which_QC = args_dict['which_QC']
     which_transform = args_dict['which_transform']
 
