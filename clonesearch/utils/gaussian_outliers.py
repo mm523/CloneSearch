@@ -10,7 +10,7 @@ from scipy.stats import ecdf
 
 def P_r(r, n):
     ''' 
-    Calculates a the expected radius distribution P(r).
+    Calculates the expected radius distribution P(r).
 
     n = number of dims
     r = radii -- an array
