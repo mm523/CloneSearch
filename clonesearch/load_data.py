@@ -52,7 +52,7 @@ def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample
         raise ValueError('Delimiter not recognised')
 
     def _check_cdr3_is_aa(cdr3):
-        if len(cdr3) == 0:
+        if not isinstance(cdr3, str) or len(cdr3) == 0:
             return False
         AAs = list('ARNDCEQGHILKMFPSTWYV')
         if not all(c in AAs for c in cdr3):
