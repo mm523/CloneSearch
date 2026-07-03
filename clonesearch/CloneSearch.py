@@ -118,6 +118,12 @@ def CloneSearch(X_counts,
             # this assumes that the noise factor is constant across samples,
             # and that the actual noise will depend on sample size
             beta_factor = [np.mean(beta_factor)]*len(beta_factor)
+        if which_beta == 'constantB':
+            # this assumes that the noise factor is constant across samples,
+            # and that the actual noise will depend on sample size
+            beta_factor = beta_factor
+        else:
+            raise ValueError(f'which_beta = "{which_beta}" not implemeted')
 
         # now transform using g(f)
         X_transformed = noise_by_size_norm(freqs_qc, N_r, sigma, beta_factor)
