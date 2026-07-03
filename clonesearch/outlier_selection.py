@@ -145,7 +145,7 @@ def main():
     metadata = pd.read_csv(args_dict['metadata'])
     sample_list = metadata['sample'].tolist()
 
-    counts_df = load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list)
+    counts_df = load_data(input_path, delimiter, columns, clone_id_cols, sample_list)
     sample_order = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
     timepoint_dictionary = dict(zip(metadata['sample'].tolist(), metadata['timepoint'].tolist()))
 
