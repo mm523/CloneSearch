@@ -18,7 +18,7 @@ def clone_search_inputs():
     clone_id_cols = ['clonalSequence', 'bestVGene', 'bestJGene']
     sample_list = metadata['sample'].tolist()
 
-    counts_df = load_data(input_path, output_path, 'tab', columns, clone_id_cols, sample_list)
+    counts_df = load_data(input_path, 'tab', columns, clone_id_cols, sample_list)
 
     sample_order = metadata.sort_values(by='timepoint', ascending=True)['sample'].tolist()
     timepoint_dictionary = dict(zip(metadata['sample'].tolist(), metadata['timepoint'].tolist()))

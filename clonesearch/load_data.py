@@ -33,17 +33,11 @@ from optparse import OptionParser
 from pathlib import Path
 import pandas as pd
 
-def load_data(input_path, output_path, delimiter, columns, clone_id_cols, sample_list):
+def load_data(input_path, delimiter, columns, clone_id_cols, sample_list):
     if type(input_path) == str:
         input_path = Path(input_path)
-    if type(output_path) == str:
-        output_path = Path(output_path)
-
     if not input_path.exists():
         raise ValueError(f'Path {input_path} does not exist')
-
-    if not output_path.exists():
-        raise ValueError(f'Path {output_path} does not exist')
 
     delimiter = '\t' if delimiter =='tab' else \
                     ',' if delimiter =='comma' else \
@@ -142,6 +136,12 @@ def main():
 
     input_path = Path(args_dict['input_path'])
     output_path = Path(args_dict['output_path'])
+
+    if type(output_path) == str:
+        output_path = Path(output_path)
+    if not output_path.exists():
+        raise ValueError(f'Path {output_path} does not exist')
+
     delimiter = args_dict['delimiter']
 
     columns = [args_dict['v_col'], args_dict['j_col'],
@@ -155,7 +155,7 @@ def main():
     metadata = pd.read_csv(args_dict['metadata'])
     sample_list = metadata.sort_values(by = 'timepoint', ascending=True)['sample'].tolist()
 
-    samples_wide = load_data(input_path, output_path, delimiter,
+    samples_wide = load_data(input_path, delimiter,
                              columns, clone_id_cols, sample_list)
     samples_wide.to_csv(output_path/'counts_all_clones.csv.gz')
 
