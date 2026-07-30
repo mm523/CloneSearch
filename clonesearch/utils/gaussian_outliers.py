@@ -29,7 +29,7 @@ def find_radius(pca_df):
     Turn the PCA vectors into polar coordinates and get radius r for each point
     '''
 
-    r = np.array([np.linalg.norm(pca_df[x]) for x in range(pca_df.shape[0])])
+    r = np.linalg.norm(pca_df.values if hasattr(pca_df, 'values') else pca_df, axis=1)
     assert len(r) == pca_df.shape[0]
     return r
 
@@ -49,7 +49,7 @@ def find_fdr_thresh(radii, dims, fdr):
     Find the outlier points using an FDR threshold
     '''
 
-    sorted_r = sorted(set(radii))
+    sorted_r = np.unique(radii)  # sorted and deduplicated, vectorized
     theory = theoretical_cdf(sorted_r, dims)
     ecdf_real = ecdf(radii)
     try:
