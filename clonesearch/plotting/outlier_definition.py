@@ -13,12 +13,12 @@ def plot_R_and_fit(R, R_thresh,
 
     gkde = gaussian_kde(R)
     kde = gkde.pdf(sorted(R))
-    plt.plot(sorted(R), kde, c = 'k', label = 'R distribution')
-    plt.plot(sorted(R), theoretical_curve, c = 'r', label = 'Theoretical curve')
+    plt.plot(sorted(R), kde, c = 'k', label = 'Data')
+    plt.plot(sorted(R), theoretical_curve, c = 'r', label = 'Gaussian expectation')
     plt.axvline(R_thresh, c = 'r', ls = ':', label = f'Radius threshold - FDR = {stat_thresh}')
     plt.legend()
 
-    txt = 'Threshold = ' + str(R_thresh.round(2)) + \
+    txt = 'Threshold = ' + str(round(R_thresh, 2)) + \
             '\nNumber of outliers = ' + str(num_outliers)
     plt.text(R_thresh+.5, theoretical_curve.max(), txt, va = 'top')
     plt.legend(bbox_to_anchor = [0.5, -.1], loc = 'upper center', ncols =2)
