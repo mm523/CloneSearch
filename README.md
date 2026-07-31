@@ -58,6 +58,9 @@ Other functions internal to CloneSearch can be found in `clonesearch.utils` and 
 
 We also provide a `clonesearch.plotting` module which contains some of the core plots used for diagnostics.
 
+#### Downloading example data
+
+For all examples, we use data that can be downloaded from https://zenodo.org/records/4065547 > beta.zip > PBMC. The example is run using M_[]_F1_beta.txt.gz samples. Download these samples and place them in the test_data/input directory to follow along.
 
 #### Command line
 
