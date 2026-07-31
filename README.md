@@ -117,3 +117,8 @@ An example command would be:
 ```
 clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_data/output/transformed_frequencies.csv --normalise True
 ```
+
+#### Version history
+
+##### v0.1.1
+- FDR calculation changed to use BH correction for more accurate definition. 
