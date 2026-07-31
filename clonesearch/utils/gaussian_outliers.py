@@ -46,21 +46,20 @@ def find_radius_outlier_thresh_pval(dimensions, pval = 0.025):
 
 def find_fdr_thresh(radii, dims, fdr):
     '''
-    Find the outlier points using an FDR threshold
+    Find the outlier points using a BH-based FDR threshold. 
+    Returns an analytical threshold from the theoretical distribution — 
+    not one of the observed radii — so the > vs >= boundary ambiguity in 
+    find_gaussian_outliers does not arise.
     '''
-
-    sorted_r = np.unique(radii)  # sorted and deduplicated, vectorized
-    theory = theoretical_cdf(sorted_r, dims)
-    ecdf_real = ecdf(radii)
-    try:
-        idx = np.where((1-theory)/(1-ecdf_real.cdf.probabilities) < fdr)[0][0]
-    except IndexError:
-        # No radius satisfies the FDR criterion; fall back to the maximum
-        # observed radius so that no clones are flagged as outliers.
-        idx = -1
-    radius_thresh = sorted_r[idx]
-
-    return radius_thresh
+    n = len(radii)
+    p_values = 1 - theoretical_cdf(radii, dims)
+    sorted_p = np.sort(p_values)                        # ascending
+    bh_line  = np.arange(1, n + 1) / n * fdr
+    below    = sorted_p <= bh_line
+    if not np.any(below):
+        return float(np.max(radii))                     # no rejections: flag nothing
+    k = int(np.where(below)[0][-1]) + 1                 # largest k (1-indexed)
+    return float(find_radius_outlier_thresh_pval(dims, k * fdr / n))
 
 def find_gaussian_outliers(pca_fit, statistical_threshold = 0.05, use_FDR = True):
     '''
