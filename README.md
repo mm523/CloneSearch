@@ -2,17 +2,17 @@
 
 CloneSearch provides an easy platform for analysis and clustering of timeseries data as described in https://www.biorxiv.org/content/10.64898/2026.05.29.728700v1.
 
-### Terms of use and disclaimers
+## Terms of use and disclaimers
 
 Please consult the [Terms of Use](TermsOfUse.md) before using this code. There is a pending patent application associated with this work; the patent application number is 63/972100.
 
-### Installation
+## Installation
 
-#### Installation from pip
+### Installation from pip
 
 Coming soon!
 
-#### Installation from GitHub
+### Installation from GitHub
 
 Clone the repository and install in editable mode:
 
@@ -29,7 +29,11 @@ To verify the installation worked you can run:
 clonesearch --version
 ```
 
-### Running CloneSearch
+## Downloading example data
+
+For all examples, we use data that can be downloaded from https://zenodo.org/records/4065547 > beta.zip > PBMC. The example is run using M_[]_F1_beta.txt.gz samples. Download these samples and place them in the test_data/input directory to follow along.
+
+## Running CloneSearch
 
 CloneSearch has two main functions:
 1. The **outlier identification** function identifies which TCRs from a dataset behave in an unexpected way (``the outliers'')
@@ -39,7 +43,7 @@ The suggested pipeline is to identify outliers from a longitudinal sequencing da
 
 CloneSearch can be used as a [command line tool](#command-line), or [imported into Python](#python-import).
 
-#### Python import
+### Python import
 
 Two tutorials are provided to run CloneSearch in a Jupyter notebook in the `examples` folder:
 1. [`tutorial.ipynb`](examples/tutorial.ipynb) uses the key functions to show end-to-end use of CloneSearch for identification and clustering of outliers
@@ -63,11 +67,7 @@ Other functions internal to CloneSearch can be found in `clonesearch.utils` and 
 
 We also provide a `clonesearch.plotting` module which contains some of the core plots used for diagnostics.
 
-#### Downloading example data
-
-For all examples, we use data that can be downloaded from https://zenodo.org/records/4065547 > beta.zip > PBMC. The example is run using M_[]_F1_beta.txt.gz samples. Download these samples and place them in the test_data/input directory to follow along.
-
-#### Command line
+### Command line
 
 The **outlier identification** can be run with command `clonesearch-find_outliers`. The command loads TCR Vb samples as specified in a metadata file and then processes the samples to find outlier TCR trajectories. 
 It outputs 3 files: 
@@ -125,7 +125,7 @@ An example command would be:
 clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_data/output/transformed_frequencies.csv --normalise True
 ```
 
-#### Version history
+### Version history
 
 ##### v0.1.1
 - FDR calculation changed to use BH correction for more accurate definition. 
