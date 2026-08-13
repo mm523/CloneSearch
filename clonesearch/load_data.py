@@ -63,7 +63,10 @@ def load_data(input_path, delimiter, columns, clone_id_cols, sample_list):
         c_sample['clone_id'] = c_sample[clone_id_cols].astype(str).agg('::'.join, axis=1)
         c_sample['sample'] = s
         c_sample = c_sample.rename(columns = {columns[-2]:'counts'})
-        samples.append(c_sample.drop(clone_id_cols + ['is_productive', columns[-1]], axis=1))
+        cols_to_keep = ['clone_id', 'counts', 'sample']
+        c_sample = c_sample.drop([c for c in c_sample.columns if c not in cols_to_keep], axis=1)
+        c_sample = c_sample.groupby(['clone_id', 'sample']).agg(sum).reset_index()
+        samples.append(c_sample)
 
     # merge all
     samples = pd.concat(samples)
