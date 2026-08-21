@@ -6,22 +6,32 @@ from clonesearch.utils.gaussian_outliers import P_r
 
 def plot_R_and_fit(R, R_thresh, 
                    n_dims, 
-                   stat_thresh = 0.05, 
+                   stat_thresh = 0.05,
+                   n = 500, 
+                   ax = None,
                    show = False):
-    theoretical_curve = P_r(sorted(R), n = n_dims)
+
+    R_sorted = np.sort(R)
+    # downsample to make the plotting faster
+    grid = np.linspace(R_sorted.min(), R_sorted.max(), n)
     num_outliers = sum(R > R_thresh)
 
     gkde = gaussian_kde(R)
-    kde = gkde.pdf(sorted(R))
-    plt.plot(sorted(R), kde, c = 'k', label = 'R distribution')
-    plt.plot(sorted(R), theoretical_curve, c = 'r', label = 'theoretical curve')
-    plt.axvline(R_thresh, c = 'r', ls = ':', label = f'radius threshold - FDR = {stat_thresh}')
-    plt.legend()
+    kde = gkde.pdf(grid)
+    theoretical_curve = P_r(grid, n=n_dims)
+    
+    if ax is None:
+        ax = plt.subplot()
+    
+    ax.plot(grid, kde, c = 'k', label = 'Data')
+    ax.plot(grid, theoretical_curve, c = 'r', label = 'Gaussian expectation')
+    ax.axvline(R_thresh, c = 'r', ls = ':', label = f'Radius threshold - FDR = {stat_thresh}')
+    ax.legend()
 
-    txt = 'threshold = ' + str(R_thresh.round(2)) + \
+    txt = 'Threshold = ' + str(round(R_thresh, 2)) + \
             '\nNumber of outliers = ' + str(num_outliers)
-    plt.text(R_thresh+.5, theoretical_curve.max(), txt, va = 'top')
-    plt.legend(bbox_to_anchor = [0.5, -.1], loc = 'upper center', ncols =2)
+    ax.text(R_thresh+.5, theoretical_curve.max(), txt, va = 'top')
+    ax.legend(bbox_to_anchor = [0.5, -.1], loc = 'upper center', ncols =2)
     if show:
         plt.show()
 

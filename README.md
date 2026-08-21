@@ -2,17 +2,17 @@
 
 CloneSearch provides an easy platform for analysis and clustering of timeseries data as described in https://www.biorxiv.org/content/10.64898/2026.05.29.728700v1.
 
-### Terms of use and disclaimers
+## Terms of use and disclaimers
 
 Please consult the [Terms of Use](TermsOfUse.md) before using this code. There is a pending patent application associated with this work; the patent application number is 63/972100.
 
-### Installation
+## Installation
 
-#### Installation from pip
+### Installation from pip
 
 Coming soon!
 
-#### Installation from GitHub
+### Installation from GitHub
 
 Clone the repository and install in editable mode:
 
@@ -29,7 +29,11 @@ To verify the installation worked you can run:
 clonesearch --version
 ```
 
-### Running CloneSearch
+## Downloading example data
+
+For all examples, we use data that can be downloaded from https://zenodo.org/records/4065547 > beta.zip > PBMC. The example is run using M_[]_F1_beta.txt.gz samples. Download these samples and place them in the test_data/input directory to follow along.
+
+## Running CloneSearch
 
 CloneSearch has two main functions:
 1. The **outlier identification** function identifies which TCRs from a dataset behave in an unexpected way (``the outliers'')
@@ -39,7 +43,7 @@ The suggested pipeline is to identify outliers from a longitudinal sequencing da
 
 CloneSearch can be used as a [command line tool](#command-line), or [imported into Python](#python-import).
 
-#### Python import
+### Python import
 
 Two tutorials are provided to run CloneSearch in a Jupyter notebook in the `examples` folder:
 1. [`tutorial.ipynb`](examples/tutorial.ipynb) uses the key functions to show end-to-end use of CloneSearch for identification and clustering of outliers
@@ -50,6 +54,11 @@ The key functions are in the `clonesearch.CloneSearch` folder.
 - `CloneSearch` takes as input the counts from a timeseries as an array for a list of TCRs and outputs the identified responding TCRs.
 - `CloneSearch_clustering` performs clustering of a set of TCR sequences, given the trajectories.
 
+The data can be loaded manually by the user or through the `load_data` function provided. The `load_data` function expects:
+1. a `.csv` file containing metadata (example provided in `test_data/input`). 
+2. a list `COLUMNS` containing column ids to be used for the import. The `COLUMNS` can provide any length of argument but must end with the column to use to extract counts followed by the column which contains CDR3 amino acid sequence (used to determine whether a clonetype is productive), e.g.: `['clone_id', 'v', 'j', 'cdr3_nt', 'counts', 'cdr3aa']`. The identification of the `counts` and `cdr3aa` columns is positional from this list.
+3. a list `CLONE_ID_COLUMNS` containing which of the imported columns in `COLUMNS` is to be used for clone identification. Importantly, `CLONE_ID_COLUMNS` must be a subset of `COLUMNS` and must contain at least one value. Please note that `load_data` will perform a `.groupby()` operation using `CLONE_ID_COLUMNS` provided to unique the clone ids. Therefore, if non-unique information is provided, multiple rows will be collapsed and their counts summed. E.g. if the only id in columns is `CDR3aa` and multiple clones in the datafram have the same CDR3, the counts of all these clones will be summed and associated with a unique identifier. Moreover, rows for which any of the `CLONE_ID_COLUMNS` are empty will be removed from the analysis. No assumption is made on the contents of `CLONE_ID_COLUMNS`, so user-defined clone id of any kind can be used. 
+
 Other functions internal to CloneSearch can be found in `clonesearch.utils` and are used for noise estimation.
 - `clonsearch.utils.noise_functions` contains functions used to calculate the noise profiles from timeseries data.
 - `clonsearch.utils.get_params` contains the functions used to extract the noise parameters from timeseries data, which are used to calculate the $g(f)$ transformation.
@@ -58,8 +67,7 @@ Other functions internal to CloneSearch can be found in `clonesearch.utils` and 
 
 We also provide a `clonesearch.plotting` module which contains some of the core plots used for diagnostics.
 
-
-#### Command line
+### Command line
 
 The **outlier identification** can be run with command `clonesearch-find_outliers`. The command loads TCR Vb samples as specified in a metadata file and then processes the samples to find outlier TCR trajectories. 
 It outputs 3 files: 
@@ -67,15 +75,17 @@ It outputs 3 files:
 2. a .csv file with the PCA projections for each TCR,
 3. a list of TCR outliers, given the identifiers provided.
 
-The following arguments are user specified and are needed: 
+The following arguments are user specified and are *needed*: 
 - `--metadata`: Path to metadata file.
 - `--cdr3aa`: Column name for CDR3aa sequence information in TCRVb sequencing file. Used for filtering of productive sequences.
 - `--counts`: Column name containing count information
 
-The following arguments can be 'None'. A TCR clone will be defined by the combination of these elements provided:
+*At least one* of the following fields must be provided, and the rest can be omitted. A TCR clone will be defined by the combination of these elements provided:
 - `-v`: Column name containing V gene information. If not provided, it will not be used to define a TCR clone.
 - `-j`: Column name containing J gene information. If not provided, it will not be used to define a TCR clone.
 - `--cdr3`: Column name containing CDR3 gene information. If not provided, it will not be used to define a TCR clone. The model is agnostic to this being nucleotide or aa sequences.
+
+Despite the naming, no assumption is made over the content of these columns, so arbitrary columns containing a pre-determined clone id can also be used for clone definition. For instance, a used defined `clone_id` can be passed into any of `-v`, `-j` or `--cdr3` and will be used to identify single clonotypes. Importantly, these columns are used as `CLONE_ID_COLUMNS` in `load_data` so, as outlined in the [command line section](#command-line), rows that share the same clone ids will have their counts summed during import. Moreover, rows for which any of the `CLONE_ID_COLUMNS` are empty will be removed from the analysis.
 
 The following arguments can be toggled by the user:
 - `-d/--delimiter`: Delimiter used in TCR Vb sequencing files. Defaults to tab. Options: `["tab", "comma"]`
@@ -114,3 +124,9 @@ An example command would be:
 ```
 clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_data/output/transformed_frequencies.csv --normalise True
 ```
+
+### Version history
+
+##### v0.1.1
+- FDR calculation changed to use BH correction for more accurate definition. 
+- Fix bug in `load_data` triggered by non-unique clone names by adding a `.groupby()` operation first.
