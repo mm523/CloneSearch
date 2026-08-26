@@ -9,13 +9,111 @@ CloneSearch_clustering takes frequency trajectories and clusters them.
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
+from scipy import stats
 from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.cluster.hierarchy import optimal_leaf_ordering, leaves_list
+import matplotlib.pyplot as plt
 
 from clonesearch.utils.get_params import get_sigma_and_b
 from clonesearch.utils.normalisation_functions import noise_by_size_norm, log10_transform
-from clonesearch.utils.gaussian_outliers import find_gaussian_outliers
+from clonesearch.utils.gaussian_outliers import find_gaussian_outliers, find_radius
+
+def anderson_darling_stat(data, cdf_func):
+            x = np.sort(np.asarray(data))
+            n = len(x)
+            F = cdf_func(x)
+            F = np.clip(F, 1e-10, 1 - 1e-10)  # avoid log(0) from CDF saturation
+            i = np.arange(1, n + 1)
+            S = np.sum((2*i - 1) * (np.log(F) + np.log(1 - F[::-1])))
+            return -n - S / n
+
+def calculate_transformed_sequences(which_transform, which_beta, N_r, freq_info, freqs_qc, counts_qc, sample_order, tp_dict):
+    if which_transform == 'g':
+        sigma, fit_b = get_sigma_and_b(freq_info, sample_order, tp_dict)
+        fit_b = max(fit_b, (1/N_r).min())
+        beta_factor = N_r*fit_b
+        if which_beta == 'constantBeta':
+            # this assumes that the noise factor is constant across samples,
+            # and that the actual noise will depend on sample size
+            beta_factor = [np.mean(beta_factor)]*len(beta_factor)
+        elif which_beta == 'constantB':
+            # this assumes that the noise factor is constant across samples,
+            # and that the actual noise will depend on sample size
+            beta_factor = beta_factor
+        else:
+            raise ValueError(f'which_beta = "{which_beta}" not implemented')
+
+        # now transform using g(f)
+        X_transformed = noise_by_size_norm(freqs_qc, N_r, sigma, beta_factor)
+    elif which_transform == 'log10':
+        X_transformed = log10_transform(counts_qc)
+    else:
+        raise ValueError(f'which_transform = "{which_transform}" not implemented')
+
+    return X_transformed
+
+
+def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict, which_transform, which_beta):
+    '''
+    Calculate the PCA and radius fits at various clone QC and automatically determine which one to use. 
+
+    normed_array = PCA input. Either g(f) or log10-transformed frequencies.
+        In both cases, we expect these to be normalised by the maximum.
+    '''
+
+    clone_sums_to_sweep = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,20]
+    ksstats = []
+    cmstats = []
+    andersonstats = []
+
+    for i, clone_min in enumerate(clone_sums_to_sweep):
+
+        mask = counts.sum(axis=1) > clone_min
+        print(f'QC clones with sum > {clone_min}: {mask.sum()}')
+
+        freqs_all = counts/N_r
+        freqs_qc = freqs_all[mask,:]
+        counts_qc = counts[mask,:]
+        qc_clones = np.array(all_clones)[mask]
+    
+        freq_info = pd.DataFrame(freqs_qc, index = qc_clones, columns=sample_order)
+        X_transformed = calculate_transformed_sequences(which_transform, which_beta, 
+                                                            N_r, freq_info, freqs_qc, counts_qc, 
+                                                            sample_order, tp_dict)
+        X_transformed_norm = X_transformed - X_transformed.max(axis=1).reshape(-1, 1)
+
+        pca = PCA(whiten = True)
+        pca_fit = pca.fit_transform(X_transformed_norm)
+        n = pca_fit.shape[1]
+        R = find_radius(pca_fit)
+
+        # plot statistics
+        
+        ksstats.append((clone_min, stats.kstest(R, stats.chi(df=n).cdf).statistic))
+        cmstats.append((clone_min,stats.cramervonmises(R, stats.chi(df=n).cdf).statistic))
+        andersonstats.append((clone_min,anderson_darling_stat(R, stats.chi(df=n).cdf)))
+
+    ksstats = pd.DataFrame(ksstats, columns = ['QC', 'ksstats'])
+    cmstats = pd.DataFrame(cmstats, columns = ['QC', 'cmstats'])
+    andersonstats = pd.DataFrame(andersonstats, columns = ['QC', 'andersonstats'])
+
+    tied = ksstats.loc[ksstats['ksstats'] == ksstats['ksstats'].min()]
+    chosen_QC = tied.sort_values('QC')['QC'].values[0]
+
+    ax = plt.subplot()
+    ax.plot(ksstats['QC'], ksstats['ksstats'], c = 'tab:blue', label = 'Kolmogorov-Smirnov test')
+    ax1 = ax.twinx()
+    ax1.plot(cmstats['QC'], cmstats['cmstats'], c = 'tab:orange', label = 'Cramér-von Mises W²-statistic')
+    ax1.plot(andersonstats['QC'], andersonstats['andersonstats'], c = 'tab:purple', label = 'Anderson-Darling A²-statistic')
+    # combine handles/labels from both axes
+    lines1, labels1 = ax.get_legend_handles_labels()
+    lines2, labels2 = ax1.get_legend_handles_labels()
+    ax.legend(lines1 + lines2, labels1 + labels2, loc='best')
+    ax.axvline(chosen_QC, ls = ':', c = 'k')
+    plt.show()
+
+    return chosen_QC
 
 
 def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical_threshold):
@@ -61,7 +159,6 @@ def CloneSearch(X_counts,
                 statistical_threshold = .05,
                 pval_or_fdr = 'fdr',
                 which_beta = 'constantBeta',
-                which_QC = 'strictQC',
                 which_transform = 'g'
                 ):
     '''
@@ -87,21 +184,8 @@ def CloneSearch(X_counts,
     - frequencies transformed by g(f)
     '''
 
-    if which_QC == 'strictQC':
-        # clones that are present with count >=3 at more than one timepoint
-        mask = (X_counts > 2).sum(axis=1) > 1
-    elif which_QC == 'looseQC':
-        # this QC allows me to get more of the small clones
-        # clones that are present at more than one timepoint
-        mask = (X_counts > 0).sum(axis=1) > 1
-    elif which_QC =='noQC':
-        # all clones - assume user wants to run on everything
-        mask = (X_counts > 0).sum(axis=1) > 0
-    else:
-        raise ValueError(
-            'The parameter which_QC has an unrecognised value. '\
-            'Please choose one of [strictQC, looseQC, noQC]'
-            )
+    chosen_QC = choose_best_clone_QC(X_counts, N_r, all_clones, sample_order, tp_dict, which_transform, which_beta)
+    mask = X_counts.sum(axis=1) > chosen_QC
 
     freqs_all = X_counts/N_r
     freqs_qc = freqs_all[mask,:]
@@ -110,27 +194,9 @@ def CloneSearch(X_counts,
 
     freq_info = pd.DataFrame(freqs_qc, index = qc_clones, columns=sample_order)
 
-    if which_transform == 'g':
-        sigma, fit_b = get_sigma_and_b(freq_info, sample_order, tp_dict)
-        fit_b = max(fit_b, (1/N_r).min())
-        beta_factor = N_r*fit_b
-        if which_beta == 'constantBeta':
-            # this assumes that the noise factor is constant across samples,
-            # and that the actual noise will depend on sample size
-            beta_factor = [np.mean(beta_factor)]*len(beta_factor)
-        elif which_beta == 'constantB':
-            # this assumes that the noise factor is constant across samples,
-            # and that the actual noise will depend on sample size
-            beta_factor = beta_factor
-        else:
-            raise ValueError(f'which_beta = "{which_beta}" not implemented')
-
-        # now transform using g(f)
-        X_transformed = noise_by_size_norm(freqs_qc, N_r, sigma, beta_factor)
-    elif which_transform == 'log10':
-        X_transformed = log10_transform(counts_qc)
-    else:
-        raise ValueError(f'which_transform = "{which_transform}" not implemented')
+    X_transformed = calculate_transformed_sequences(which_transform, which_beta, 
+                                                    N_r, freq_info, freqs_qc, counts_qc, 
+                                                    sample_order, tp_dict)
 
     X_transformed_norm = X_transformed - X_transformed.max(axis=1).reshape(-1, 1)
     pca_fit, R_thresh, outlier_vector = \
