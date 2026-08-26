@@ -20,27 +20,29 @@ from clonesearch.utils.normalisation_functions import noise_by_size_norm, log10_
 from clonesearch.utils.gaussian_outliers import find_gaussian_outliers, find_radius
 
 def anderson_darling_stat(data, cdf_func):
-            x = np.sort(np.asarray(data))
-            n = len(x)
-            F = cdf_func(x)
-            F = np.clip(F, 1e-10, 1 - 1e-10)  # avoid log(0) from CDF saturation
-            i = np.arange(1, n + 1)
-            S = np.sum((2*i - 1) * (np.log(F) + np.log(1 - F[::-1])))
-            return -n - S / n
+    x = np.sort(np.asarray(data))
+    n = len(x)
+    F = cdf_func(x)
+    F = np.clip(F, 1e-10, 1 - 1e-10)  # avoid log(0) from CDF saturation
+    i = np.arange(1, n + 1)
+    S = np.sum((2 * i - 1) * (np.log(F) + np.log(1 - F[::-1])))
+    return -n - S / n
 
-def calculate_transformed_sequences(which_transform, which_beta, N_r, freq_info, freqs_qc, counts_qc, sample_order, tp_dict):
+
+def calculate_transformed_sequences(which_transform, which_beta, N_r, freq_info,
+                                     freqs_qc, counts_qc, sample_order, tp_dict):
     if which_transform == 'g':
         sigma, fit_b = get_sigma_and_b(freq_info, sample_order, tp_dict)
-        fit_b = max(fit_b, (1/N_r).min())
-        beta_factor = N_r*fit_b
+        fit_b = max(fit_b, (1 / N_r).min())
+        beta_factor = N_r * fit_b
         if which_beta == 'constantBeta':
-            # this assumes that the noise factor is constant across samples,
-            # and that the actual noise will depend on sample size
-            beta_factor = [np.mean(beta_factor)]*len(beta_factor)
+            # assumes the noise factor is constant across samples, and that
+            # the actual noise will depend on sample size
+            beta_factor = [np.mean(beta_factor)] * len(beta_factor)
         elif which_beta == 'constantB':
-            # this assumes that the noise factor is constant across samples,
-            # and that the actual noise will depend on sample size
-            beta_factor = beta_factor
+            # b (rather than beta) is held constant across samples here;
+            # beta_factor = N_r * fit_b is left to vary with sample size as-is
+            pass
         else:
             raise ValueError(f'which_beta = "{which_beta}" not implemented')
 
@@ -54,64 +56,127 @@ def calculate_transformed_sequences(which_transform, which_beta, N_r, freq_info,
     return X_transformed
 
 
-def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict, which_transform, which_beta):
+def qc_transform(counts, N_r, all_clones, sample_order, tp_dict,
+                  which_transform, which_beta, clone_min):
     '''
-    Calculate the PCA and radius fits at various clone QC and automatically determine which one to use. 
+    Apply a clone-sum QC threshold and compute the transformed (and
+    max-normalised) frequency matrix for the surviving clones.
 
-    normed_array = PCA input. Either g(f) or log10-transformed frequencies.
-        In both cases, we expect these to be normalised by the maximum.
+    Shared by choose_best_clone_QC (during the QC sweep) and CloneSearch
+    (once the chosen QC threshold has been applied), so the QC/transform
+    logic only needs to be maintained in one place.
+
+    Returns
+    -------
+    qc_clones : array of clone ids that passed QC
+    X_transformed : transformed frequencies (unnormalised), indexed like qc_clones
+    X_transformed_norm : X_transformed, row-wise normalised by its max
     '''
+    mask = counts.sum(axis=1) > clone_min
 
-    clone_sums_to_sweep = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,20]
-    ksstats = []
-    cmstats = []
-    andersonstats = []
+    freqs_all = counts / N_r
+    freqs_qc = freqs_all[mask, :]
+    counts_qc = counts[mask, :]
+    qc_clones = np.array(all_clones)[mask]
 
-    for i, clone_min in enumerate(clone_sums_to_sweep):
+    freq_info = pd.DataFrame(freqs_qc, index=qc_clones, columns=sample_order)
 
-        mask = counts.sum(axis=1) > clone_min
-        print(f'QC clones with sum > {clone_min}: {mask.sum()}')
+    X_transformed = calculate_transformed_sequences(
+        which_transform, which_beta, N_r, freq_info, freqs_qc, counts_qc,
+        sample_order, tp_dict
+    )
+    X_transformed_norm = X_transformed - X_transformed.max(axis=1).reshape(-1, 1)
 
-        freqs_all = counts/N_r
-        freqs_qc = freqs_all[mask,:]
-        counts_qc = counts[mask,:]
-        qc_clones = np.array(all_clones)[mask]
-    
-        freq_info = pd.DataFrame(freqs_qc, index = qc_clones, columns=sample_order)
-        X_transformed = calculate_transformed_sequences(which_transform, which_beta, 
-                                                            N_r, freq_info, freqs_qc, counts_qc, 
-                                                            sample_order, tp_dict)
-        X_transformed_norm = X_transformed - X_transformed.max(axis=1).reshape(-1, 1)
+    return qc_clones, X_transformed, X_transformed_norm
 
-        pca = PCA(whiten = True)
+
+def compute_qc_sweep_stats(counts, N_r, all_clones, sample_order, tp_dict,
+                            which_transform, which_beta,
+                            clone_sums_to_sweep=tuple(list(range(0, 15)) + [20])):
+    '''
+    For each candidate clone-sum QC threshold, fit a PCA to the transformed
+    frequencies and compute goodness-of-fit statistics (KS, Cramer-von Mises,
+    Anderson-Darling) between the radius distribution and its theoretical
+    chi distribution.
+
+    Returns a DataFrame with columns: QC, ksstats, cmstats, andersonstats.
+    '''
+    rows = []
+    for clone_min in clone_sums_to_sweep:
+        qc_clones, _, X_transformed_norm = qc_transform(
+            counts, N_r, all_clones, sample_order, tp_dict,
+            which_transform, which_beta, clone_min
+        )
+
+        pca = PCA(whiten=True)
         pca_fit = pca.fit_transform(X_transformed_norm)
         n = pca_fit.shape[1]
         R = find_radius(pca_fit)
 
-        # plot statistics
-        
-        ksstats.append((clone_min, stats.kstest(R, stats.chi(df=n).cdf).statistic))
-        cmstats.append((clone_min,stats.cramervonmises(R, stats.chi(df=n).cdf).statistic))
-        andersonstats.append((clone_min,anderson_darling_stat(R, stats.chi(df=n).cdf)))
+        chi_cdf = stats.chi(df=n).cdf  # build once, reuse across all 3 stats
 
-    ksstats = pd.DataFrame(ksstats, columns = ['QC', 'ksstats'])
-    cmstats = pd.DataFrame(cmstats, columns = ['QC', 'cmstats'])
-    andersonstats = pd.DataFrame(andersonstats, columns = ['QC', 'andersonstats'])
+        rows.append({
+            'QC': clone_min,
+            'n_clones': len(qc_clones),
+            'ksstats': stats.kstest(R, chi_cdf).statistic,
+            'cmstats': stats.cramervonmises(R, chi_cdf).statistic,
+            'andersonstats': anderson_darling_stat(R, chi_cdf),
+        })
 
-    tied = ksstats.loc[ksstats['ksstats'] == ksstats['ksstats'].min()]
-    chosen_QC = tied.sort_values('QC')['QC'].values[0]
+    return pd.DataFrame(rows)
 
+
+def select_best_qc(qc_stats_df, stat_col='ksstats'):
+    '''
+    Pick the QC threshold with the lowest goodness-of-fit statistic
+    (best fit to theoretical chi distribution). Ties are broken by
+    preferring the smallest (least strict) QC threshold.
+    '''
+    tied = qc_stats_df.loc[qc_stats_df[stat_col] == qc_stats_df[stat_col].min()]
+    return tied.sort_values('QC')['QC'].values[0]
+
+
+def plot_qc_sweep(qc_stats_df, chosen_QC):
+    '''
+    Plot KS / Cramer-von Mises / Anderson-Darling statistics across the
+    QC sweep, with a marker at the chosen QC threshold.
+    '''
     ax = plt.subplot()
-    ax.plot(ksstats['QC'], ksstats['ksstats'], c = 'tab:blue', label = 'Kolmogorov-Smirnov test')
+    ax.plot(qc_stats_df['QC'], qc_stats_df['ksstats'],
+            c='tab:blue', marker ='o', 
+            label='Kolmogorov-Smirnov test')
     ax1 = ax.twinx()
-    ax1.plot(cmstats['QC'], cmstats['cmstats'], c = 'tab:orange', label = 'Cramér-von Mises W²-statistic')
-    ax1.plot(andersonstats['QC'], andersonstats['andersonstats'], c = 'tab:purple', label = 'Anderson-Darling A²-statistic')
-    # combine handles/labels from both axes
+    ax1.plot(qc_stats_df['QC'], qc_stats_df['cmstats'],
+             c='tab:orange', marker ='o', 
+             label='Cramér-von Mises W²-statistic')
+    ax1.plot(qc_stats_df['QC'], qc_stats_df['andersonstats'],
+             c='tab:purple', marker ='o', 
+             label='Anderson-Darling A²-statistic')
+
     lines1, labels1 = ax.get_legend_handles_labels()
     lines2, labels2 = ax1.get_legend_handles_labels()
     ax.legend(lines1 + lines2, labels1 + labels2, loc='best')
-    ax.axvline(chosen_QC, ls = ':', c = 'k')
+    ax.axvline(chosen_QC, ls=':', c='k')
     plt.show()
+
+
+def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
+                          which_transform, which_beta, make_plot=True):
+    '''
+    Calculate the PCA and radius fits at various clone QC thresholds and
+    automatically determine which one to use.
+
+    Set make_plot=False to skip rendering the diagnostic plot (e.g. when
+    running this in a batch/headless pipeline over many samples).
+    '''
+    qc_stats = compute_qc_sweep_stats(
+        counts, N_r, all_clones, sample_order, tp_dict,
+        which_transform, which_beta
+    )
+    chosen_QC = select_best_qc(qc_stats)
+
+    if make_plot:
+        plot_qc_sweep(qc_stats, chosen_QC)
 
     return chosen_QC
 
@@ -151,16 +216,18 @@ def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical
 
     return pca_fit, R_thresh, outlier_vector
 
+
 def CloneSearch(X_counts,
-                N_r,
-                all_clones,
-                sample_order,
-                tp_dict,
-                statistical_threshold = .05,
-                pval_or_fdr = 'fdr',
-                which_beta = 'constantBeta',
-                which_transform = 'g'
-                ):
+                 N_r,
+                 all_clones,
+                 sample_order,
+                 tp_dict,
+                 statistical_threshold = .05,
+                 pval_or_fdr = 'fdr',
+                 which_beta = 'constantBeta',
+                 which_transform = 'g',
+                 make_qc_plot=True
+                 ):
     '''
     Calculation of outliers, starting from a table of counts.
 
@@ -173,10 +240,10 @@ def CloneSearch(X_counts,
     pval_or_FDR = whether to use a pval or a FDR threshold - alternatives: pval or fdr
     which_beta = use a constant beta or b parameter in g(f) for all samples in timeseries 
                     - alternatives: constantB, constantBeta. We recommend the constantBeta setting
-    which_QC = include small clones or not - alternatives: looseQC, strictQC, noQC
     which_transform = use default g(f) transform or log10 - alternatives: g(f), log10
+    make_qc_plot = whether to render the QC-sweep diagnostic plot
 
-    RETURNS: 
+    RETURNS:
 
     - list of outlier clones identified
     - PCA-transformed frequencies for each clone indicating the radius of each clone
@@ -184,36 +251,46 @@ def CloneSearch(X_counts,
     - frequencies transformed by g(f)
     '''
 
-    chosen_QC = choose_best_clone_QC(X_counts, N_r, all_clones, sample_order, tp_dict, which_transform, which_beta)
-    mask = X_counts.sum(axis=1) > chosen_QC
+    chosen_QC = choose_best_clone_QC(
+        X_counts, N_r, all_clones, sample_order, tp_dict,
+        which_transform, which_beta, make_plot=make_qc_plot
+    )
 
-    freqs_all = X_counts/N_r
-    freqs_qc = freqs_all[mask,:]
-    counts_qc = X_counts[mask,:]
-    qc_clones = np.array(all_clones)[mask]
+    qc_clones, X_transformed, X_transformed_norm = qc_transform(
+        X_counts, N_r, all_clones, sample_order, tp_dict,
+        which_transform, which_beta, chosen_QC
+    )
 
-    freq_info = pd.DataFrame(freqs_qc, index = qc_clones, columns=sample_order)
-
-    X_transformed = calculate_transformed_sequences(which_transform, which_beta, 
-                                                    N_r, freq_info, freqs_qc, counts_qc, 
-                                                    sample_order, tp_dict)
-
-    X_transformed_norm = X_transformed - X_transformed.max(axis=1).reshape(-1, 1)
-    pca_fit, R_thresh, outlier_vector = \
-        pca_outlier_identification(
-            X_transformed_norm, qc_clones,
-            pval_or_fdr, statistical_threshold
-            )
+    pca_fit, R_thresh, outlier_vector = pca_outlier_identification(
+        X_transformed_norm, qc_clones, pval_or_fdr, statistical_threshold
+    )
     outlier_list = qc_clones[outlier_vector]
 
-    X_transformed = pd.DataFrame(X_transformed, index = qc_clones, columns = sample_order)
+    X_transformed = pd.DataFrame(X_transformed, index=qc_clones, columns=sample_order)
 
     return outlier_list, pca_fit, R_thresh, X_transformed
 
+
+def _stable_cluster_labels(fl, row_linkage):
+    '''
+    Relabel cluster ids so that cluster numbering follows the order
+    clusters first appear in the dendrogram leaf order, giving stable,
+    reproducible cluster numbers regardless of fcluster's internal ids.
+    '''
+    dendrogram_order = leaves_list(row_linkage)
+    remap = {}
+    counter = 1
+    for idx in dendrogram_order:
+        cluster_id = fl[idx]
+        if cluster_id not in remap:
+            remap[cluster_id] = counter
+            counter += 1
+    return np.array([remap[c] for c in fl])
+
 def CloneSearch_clustering(input_df,
-                           distance_metric = 'correlation',
-                           linkage_method = 'average',
-                           distance_thresh = 0.61):
+                            distance_metric = 'correlation',
+                            linkage_method = 'average',
+                            distance_thresh = 0.61):
     '''
     Clustering of a custom set of TCR frequencies, typically the outliers.
 
@@ -238,17 +315,6 @@ def CloneSearch_clustering(input_df,
     row_linkage_all = optimal_leaf_ordering(row_linkage_all, _similarity_all)
 
     fl = fcluster(row_linkage_all, distance_thresh, criterion='distance')
+    fl = _stable_cluster_labels(fl, row_linkage_all)
 
-    def stable_cluster_labels(fl, row_linkage):
-        dendrogram_order = leaves_list(row_linkage)
-        remap = {}
-        counter = 1
-        for idx in dendrogram_order:
-            cluster_id = fl[idx]
-            if cluster_id not in remap:
-                remap[cluster_id] = counter
-                counter += 1
-        return np.array([remap[c] for c in fl])
-
-    fl = stable_cluster_labels(fl, row_linkage_all)
     return row_linkage_all, fl
