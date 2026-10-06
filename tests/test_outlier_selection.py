@@ -70,7 +70,7 @@ class TestCloneSearch:
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
-            0.05, 'fdr', 'constantBeta', 'g'
+            0.05, 'fdr', 'constantBeta', 'strict', 'g'
         )
         assert len(outlier_list) == len(expected_outliers)
         assert sorted(outlier_list) == sorted(expected_outliers)
@@ -80,7 +80,7 @@ class TestCloneSearch:
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
-            0.05, 'pvalue', 'constantBeta', 'g',
+            0.05, 'pvalue', 'constantBeta', 'strict', 'g',
             make_qc_plot=False,
         )
         assert isinstance(R_thresh, float)
@@ -92,7 +92,7 @@ class TestCloneSearch:
                 clone_search_inputs['counts'], clone_search_inputs['Nr'],
                 clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
                 clone_search_inputs['timepoint_dictionary'],
-                0.05, 'pval', 'constantBeta', 'g',
+                0.05, 'pval', 'constantBeta', 'strict', 'g',
                 make_qc_plot=False,
             )
 
@@ -104,11 +104,13 @@ class TestQCTransform:
 
     def test_qc_transform_shapes_and_normalisation(self, clone_search_inputs):
         clone_min = 0
+        qc_mask = clone_search_inputs['counts'].sum(axis=1) > clone_min
+
         qc_clones, X_transformed, X_transformed_norm = qc_transform(
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
-            'g', 'constantBeta', clone_min,
+            'g', 'constantBeta', qc_mask,
         )
 
         n_qc_clones = (clone_search_inputs['counts'].sum(axis=1) > clone_min).sum()
@@ -121,38 +123,44 @@ class TestQCTransform:
         assert np.allclose(row_maxes, 0.0, atol=1e-8)
 
     def test_qc_transform_stricter_threshold_keeps_fewer_or_equal_clones(self, clone_search_inputs):
+
+        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
         qc_clones_loose, _, _ = qc_transform(
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
-            'g', 'constantBeta', clone_min=0,
+            'g', 'constantBeta', qc_mask,
         )
+
+        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 10
         qc_clones_strict, _, _ = qc_transform(
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
-            'g', 'constantBeta', clone_min=10,
+            'g', 'constantBeta', qc_mask
         )
         assert len(qc_clones_strict) <= len(qc_clones_loose)
         # every clone kept under the stricter threshold must also be kept under the loose one
         assert set(qc_clones_strict).issubset(set(qc_clones_loose))
 
     def test_qc_transform_raises_on_invalid_transform(self, clone_search_inputs):
+        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
                 clone_search_inputs['counts'], clone_search_inputs['Nr'],
                 clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
                 clone_search_inputs['timepoint_dictionary'],
-                'not_a_real_transform', 'constantBeta', clone_min=0,
+                'not_a_real_transform', 'constantBeta', qc_mask,
             )
 
     def test_qc_transform_raises_on_invalid_beta(self, clone_search_inputs):
+        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
                 clone_search_inputs['counts'], clone_search_inputs['Nr'],
                 clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
                 clone_search_inputs['timepoint_dictionary'],
-                'g', 'not_a_real_beta', clone_min=0,
+                'g', 'not_a_real_beta', qc_mask,
             )
 
 

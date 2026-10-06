@@ -57,7 +57,7 @@ def calculate_transformed_sequences(which_transform, which_beta, N_r, freq_info,
 
 
 def qc_transform(counts, N_r, all_clones, sample_order, tp_dict,
-                  which_transform, which_beta, clone_min):
+                  which_transform, which_beta, qc_mask):
     '''
     Apply a clone-sum QC threshold and compute the transformed (and
     max-normalised) frequency matrix for the surviving clones.
@@ -72,12 +72,14 @@ def qc_transform(counts, N_r, all_clones, sample_order, tp_dict,
     X_transformed : transformed frequencies (unnormalised), indexed like qc_clones
     X_transformed_norm : X_transformed, row-wise normalised by its max
     '''
-    mask = counts.sum(axis=1) > clone_min
+
+    print(qc_mask)
 
     freqs_all = counts / N_r
-    freqs_qc = freqs_all[mask, :]
-    counts_qc = counts[mask, :]
-    qc_clones = np.array(all_clones)[mask]
+    freqs_qc = freqs_all[qc_mask, :]
+    counts_qc = counts[qc_mask, :]
+    qc_clones = np.array(all_clones)[qc_mask]
+    print(qc_clones)
 
     freq_info = pd.DataFrame(freqs_qc, index=qc_clones, columns=sample_order)
 
@@ -103,9 +105,10 @@ def compute_qc_sweep_stats(counts, N_r, all_clones, sample_order, tp_dict,
     '''
     rows = []
     for clone_min in clone_sums_to_sweep:
+        qc_mask = counts.sum(axis=1) > clone_min
         qc_clones, _, X_transformed_norm = qc_transform(
             counts, N_r, all_clones, sample_order, tp_dict,
-            which_transform, which_beta, clone_min
+            which_transform, which_beta, qc_mask
         )
 
         pca = PCA(whiten=True)
@@ -225,6 +228,7 @@ def CloneSearch(X_counts,
                  statistical_threshold = .05,
                  pval_or_fdr = 'fdr',
                  which_beta = 'constantBeta',
+                 which_QC = 'strict',
                  which_transform = 'g',
                  make_qc_plot=True
                  ):
@@ -240,6 +244,7 @@ def CloneSearch(X_counts,
     pval_or_FDR = whether to use a pval or a FDR threshold - alternatives: pval or fdr
     which_beta = use a constant beta or b parameter in g(f) for all samples in timeseries 
                     - alternatives: constantB, constantBeta. We recommend the constantBeta setting
+    which_QC = include small clones or not - alternatives: ["strict", "tune", "none"]. Defaults to "strict".
     which_transform = use default g(f) transform or log10 - alternatives: g(f), log10
     make_qc_plot = whether to render the QC-sweep diagnostic plot
 
@@ -251,14 +256,29 @@ def CloneSearch(X_counts,
     - frequencies transformed by g(f)
     '''
 
-    chosen_QC = choose_best_clone_QC(
-        X_counts, N_r, all_clones, sample_order, tp_dict,
-        which_transform, which_beta, make_plot=make_qc_plot
-    )
+    if which_QC == 'strict':
+        # clones that are present with count >=3 at more than one timepoint
+        mask = (X_counts > 2).sum(axis=1) > 1
+    elif which_QC == 'tune':
+        # this QC allows me to get more of the small clones
+        # clones that are present at more than one timepoint
+        chosen_QC = choose_best_clone_QC(
+                X_counts, N_r, all_clones, sample_order, tp_dict,
+                which_transform, which_beta, make_plot=make_qc_plot
+            )
+        mask = X_counts.sum(axis=1) > chosen_QC
+    elif which_QC =='none':
+        # all clones - assume user wants to run on everything
+        mask = (X_counts > 0).sum(axis=1) > 0
+    else:
+        raise ValueError(
+            'The parameter which_QC has an unrecognised value. '\
+            'Please choose one of [strictQC, looseQC, noQC]'
+            )
 
     qc_clones, X_transformed, X_transformed_norm = qc_transform(
         X_counts, N_r, all_clones, sample_order, tp_dict,
-        which_transform, which_beta, chosen_QC
+        which_transform, which_beta, mask
     )
 
     pca_fit, R_thresh, outlier_vector = pca_outlier_identification(
