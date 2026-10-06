@@ -127,6 +127,9 @@ clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_d
 
 ### Version history
 
+##### v0.2.0
+- Add option to tune clone QC depending on the sample
+
 ##### v0.1.1
 - FDR calculation changed to use BH correction for more accurate definition. 
 - Fix bug in `load_data` triggered by non-unique clone names by adding a `.groupby()` operation first.
