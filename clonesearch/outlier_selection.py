@@ -33,12 +33,13 @@ The following arguments can be toggled by the user:
 - --beta-param-constant: Whether to keep the beta parameter constant across samples. 
                          Defaults to True. We recommend leaving this to True.
 - --which-QC: How to select which clones are included in the analysis. 
-              Options are ["strictQC", "looseQC", "noQC"]. 
-              With "strictQC", clones are kept if present at count > 2 in > 1 timepoint.
-              With "looseQC", clones are kept if present at count > 0 in > 1 timepoint.
-              With "noQC", all clones are included. 
+              Options are ["strict", "tune", "none"]. 
+              With "strict", clones are kept if present at count > 2 in > 1 timepoint.
+              With "tune", clones are kept if their total sum across all timepoints is greater than a minimum clone count C. 
+              C is defined in a sample-by-sample basis by finding the C at which the expected PCA P_r distribution is closest to the observed distribution.
+              With "none", all clones are included. 
               This makes the implementation very slow and may give noisier results.
-              Defaults to "strictQC".
+              Defaults to "strict".
 - --transform: Which transformation to apply to the frequencies. 
                Options are ["g", "log"]. Defaults to "g", which implements g(f).
 '''
@@ -97,16 +98,17 @@ def parse_all_arguments():
                       choices=['True', 'False'],
                       help='Whether to keep the beta parameter constant across samples. ' \
                            'Defaults to True. We recommend leaving this to True.')
-    parser.add_option('--which-QC', default='strictQC',
+    parser.add_option('--which-QC', default='strict',
                       dest='which_QC', type='choice',
-                      choices = ['strictQC', 'looseQC', 'noQC'],
+                      choices = ['strict', 'tune', 'none'],
                       help='How to select which clones are included in the analysis. ' \
-                           'Options are ["strictQC", "looseQC", "noQC"]. ' \
-                           'With "strictQC", keep clones if present at count>2 in >1 timepoint.' \
-                           'With "looseQC", keep clones if present at count>0 in >1 timepoint.' \
-                           'With "noQC", all clones are included. ' \
+                           'Options are ["strict", "loose", "none"]. ' \
+                           'With "strict", clones are kept if present at count > 2 in > 1 timepoint.' \
+                           'With "tune", clones are kept if their total sum across all timepoints is greater than a minimum clone count C. ' \
+                           'C is defined in a sample-by-sample basis by finding the C at which the expected PCA P_r distribution is closest to the observed distribution.' \
+                           'With "none", all clones are included. ' \
                            'This makes the implementation very slow and may give noisier results.' \
-                           'Defaults to "strictQC".')
+                           'Defaults to "strict".')
     parser.add_option('--transform', default='g',
                       dest='which_transform', type='choice',
                       choices=['g', 'log'],
