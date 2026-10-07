@@ -182,7 +182,7 @@ def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
     return chosen_QC
 
 
-def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical_threshold):
+def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical_threshold, fdr_mode = None):
     '''
     Calculate the PCA. 
 
@@ -209,7 +209,8 @@ def pca_outlier_identification(normed_array, qc_clones, pval_or_fdr, statistical
         find_gaussian_outliers(
             pca_fit,
             statistical_threshold=statistical_threshold,
-            use_FDR=use_FDR
+            use_FDR=use_FDR,
+            fdr_mode = fdr_mode
             )
 
     pca_fit = pd.DataFrame(pca_fit, index = qc_clones)
@@ -228,7 +229,8 @@ def CloneSearch(X_counts,
                  which_beta = 'constantBeta',
                  which_QC = 'strict',
                  which_transform = 'g',
-                 make_qc_plot=True
+                 make_qc_plot=True, 
+                 fdr_mode = None
                  ):
     '''
     Calculation of outliers, starting from a table of counts.
@@ -245,6 +247,9 @@ def CloneSearch(X_counts,
     which_QC = include small clones or not - alternatives: ["strict", "tune", "none"]. Defaults to "strict".
     which_transform = use default g(f) transform or log10 - alternatives: g(f), log10
     make_qc_plot = whether to render the QC-sweep diagnostic plot
+    fdr_mode = either "legacy" or none. When set to legacy, it uses a manual FDR determination 
+                which is the method used in the CloneSearch paper. When not set, it calculates
+                FDR analytically using the Benjamini-Hochberg (BH) correction. It defaults to none.
 
     RETURNS:
 
@@ -283,7 +288,7 @@ def CloneSearch(X_counts,
     )
 
     pca_fit, R_thresh, outlier_vector = pca_outlier_identification(
-        X_transformed_norm, qc_clones, pval_or_fdr, statistical_threshold
+        X_transformed_norm, qc_clones, pval_or_fdr, statistical_threshold, fdr_mode = fdr_mode
     )
     outlier_list = qc_clones[outlier_vector]
 

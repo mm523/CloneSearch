@@ -57,13 +57,9 @@ def clone_search_inputs():
     )
 
 class TestCloneSearch:
-    @pytest.mark.skipif(
-        not os.path.exists('test_data/expected_output/outliers.txt'),
-        reason="test data file not available"
-    )
     def test_cloneserch_overall(self, clone_search_inputs):
         expected_outliers = pd.read_csv(
-            'test_data/expected_output/outliers.txt', sep='\t', header=None
+            'test_data/expected_output/outliers_BH.txt', sep='\t', header=None
         )[0].tolist()
 
         outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
@@ -74,6 +70,20 @@ class TestCloneSearch:
         )
         assert len(outlier_list) == len(expected_outliers)
         assert sorted(outlier_list) == sorted(expected_outliers)
+
+    def test_cloneserch_overall_legacy(self, clone_search_inputs):
+            expected_outliers = pd.read_csv(
+                'test_data/expected_output/outliers_paper.txt', sep='\t', header=None
+            )[0].tolist()
+    
+            outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
+                clone_search_inputs['counts'], clone_search_inputs['Nr'],
+                clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
+                clone_search_inputs['timepoint_dictionary'],
+                0.05, 'fdr', 'constantBeta', 'strict', 'g', fdr_mode = 'legacy'
+            )
+            assert len(outlier_list) == len(expected_outliers)
+            assert sorted(outlier_list) == sorted(expected_outliers)
 
     def test_cloneserch_pval_does_not_crash(self, clone_search_inputs):
         outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
