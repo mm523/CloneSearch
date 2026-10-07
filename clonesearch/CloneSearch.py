@@ -136,7 +136,7 @@ def select_best_qc(qc_stats_df, stat_col='ksstats'):
     return tied.sort_values('QC')['QC'].values[0]
 
 
-def plot_qc_sweep(qc_stats_df, chosen_QC):
+def plot_qc_sweep(qc_stats_df, chosen_QC, save_path = None):
     '''
     Plot KS / Cramer-von Mises / Anderson-Darling statistics across the
     QC sweep, with a marker at the chosen QC threshold.
@@ -157,11 +157,13 @@ def plot_qc_sweep(qc_stats_df, chosen_QC):
     lines2, labels2 = ax1.get_legend_handles_labels()
     ax.legend(lines1 + lines2, labels1 + labels2, loc='best')
     ax.axvline(chosen_QC, ls=':', c='k')
+    if save_path is not None:
+        plt.savefig(f'{save_path}/cloneQC_threshold_sweep.pdf', bbox_inches = 'tight')
     plt.show()
 
 
 def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
-                          which_transform, which_beta, make_plot=True):
+                          which_transform, which_beta, make_plot=True, save_path = None):
     '''
     Calculate the PCA and radius fits at various clone QC thresholds and
     automatically determine which one to use.
@@ -177,7 +179,7 @@ def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
     print(f"Selected clone sum threshold = {chosen_QC}")
 
     if make_plot:
-        plot_qc_sweep(qc_stats, chosen_QC)
+        plot_qc_sweep(qc_stats, chosen_QC, save_path)
 
     return chosen_QC
 
@@ -230,7 +232,8 @@ def CloneSearch(X_counts,
                  which_QC = 'strict',
                  which_transform = 'g',
                  make_qc_plot=True, 
-                 fdr_mode = None
+                 fdr_mode = None,
+                 save_path = None
                  ):
     '''
     Calculation of outliers, starting from a table of counts.
@@ -268,7 +271,8 @@ def CloneSearch(X_counts,
         # clones that are present at more than one timepoint
         chosen_QC = choose_best_clone_QC(
                 X_counts, N_r, all_clones, sample_order, tp_dict,
-                which_transform, which_beta, make_plot=make_qc_plot
+                which_transform, which_beta, make_plot=make_qc_plot,
+                save_path = save_path
             )
         mask = X_counts.sum(axis=1) > chosen_QC
         print(f"Keeping {mask.sum()} clones with total count across timepoints > {chosen_QC}")

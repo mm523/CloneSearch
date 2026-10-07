@@ -167,7 +167,8 @@ def main():
     outlier_list, pca_fit, R_thresh, X_transformed = \
                     CloneSearch(counts, Nr, all_clones,
                                 sample_order, timepoint_dictionary, stat_thresh,
-                                pval_or_fdr, which_beta, which_QC, which_transform)
+                                pval_or_fdr, which_beta, which_QC, which_transform,
+                                save_path = output_path)
 
     print(f'{len(outlier_list)} outliers identified with R threshold = {R_thresh}.')
 
