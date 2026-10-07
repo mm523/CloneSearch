@@ -73,13 +73,10 @@ def qc_transform(counts, N_r, all_clones, sample_order, tp_dict,
     X_transformed_norm : X_transformed, row-wise normalised by its max
     '''
 
-    print(qc_mask)
-
     freqs_all = counts / N_r
     freqs_qc = freqs_all[qc_mask, :]
     counts_qc = counts[qc_mask, :]
     qc_clones = np.array(all_clones)[qc_mask]
-    print(qc_clones)
 
     freq_info = pd.DataFrame(freqs_qc, index=qc_clones, columns=sample_order)
 
@@ -177,6 +174,7 @@ def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
         which_transform, which_beta
     )
     chosen_QC = select_best_qc(qc_stats)
+    print(f"Selected clone sum threshold = {chosen_QC}")
 
     if make_plot:
         plot_qc_sweep(qc_stats, chosen_QC)
@@ -259,6 +257,7 @@ def CloneSearch(X_counts,
     if which_QC == 'strict':
         # clones that are present with count >=3 at more than one timepoint
         mask = (X_counts > 2).sum(axis=1) > 1
+        print(f"Keeping {mask.sum()} clones with count >=3 at more than one timepoint")
     elif which_QC == 'tune':
         # this QC allows me to get more of the small clones
         # clones that are present at more than one timepoint
@@ -267,9 +266,11 @@ def CloneSearch(X_counts,
                 which_transform, which_beta, make_plot=make_qc_plot
             )
         mask = X_counts.sum(axis=1) > chosen_QC
+        print(f"Keeping {mask.sum()} clones with total count across timepoints > {chosen_QC}")
     elif which_QC =='none':
         # all clones - assume user wants to run on everything
         mask = (X_counts > 0).sum(axis=1) > 0
+        print(f"Keeping {mask.sum()} clones with count > 0 at any timepoint.")
     else:
         raise ValueError(
             'The parameter which_QC has an unrecognised value. '\
