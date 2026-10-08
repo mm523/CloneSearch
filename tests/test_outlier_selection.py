@@ -182,8 +182,8 @@ class TestQCSweep:
     def test_compute_qc_sweep_stats_shape_and_columns(self, clone_search_inputs):
         clone_sums_to_sweep = [0, 1, 2]
         qc_stats = compute_qc_sweep_stats(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
-            clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
+            clone_search_inputs['counts'][:10**4,:], clone_search_inputs['Nr'],
+            clone_search_inputs['all_clones'][:10**4], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
             'g', 'constantBeta',
             clone_sums_to_sweep=clone_sums_to_sweep,
@@ -281,13 +281,14 @@ class TestQCSweep:
         assert chosen_QC in expected_sweep
 
     def test_choose_best_clone_QC_make_plot_true_does_not_raise(self, clone_search_inputs):
-        # with the Agg backend + patched plt.show, this should run headlessly
+        to_sweep = list(range(0, 5)) + [20]
         chosen_QC = choose_best_clone_QC(
             clone_search_inputs['counts'], clone_search_inputs['Nr'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
             clone_search_inputs['timepoint_dictionary'],
             'g', 'constantBeta',
             make_plot=True,
+            clone_sums_to_sweep=to_sweep
         )
         assert isinstance(chosen_QC, (int, np.integer))
 

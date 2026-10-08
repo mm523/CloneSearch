@@ -163,7 +163,9 @@ def plot_qc_sweep(qc_stats_df, chosen_QC, save_path = None):
 
 
 def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
-                          which_transform, which_beta, make_plot=True, save_path = None):
+                          which_transform, which_beta, 
+                          clone_sums_to_sweep = tuple(list(range(0, 15)) + [20]), 
+                          make_plot=True, save_path = None):
     '''
     Calculate the PCA and radius fits at various clone QC thresholds and
     automatically determine which one to use.
@@ -173,7 +175,7 @@ def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
     '''
     qc_stats = compute_qc_sweep_stats(
         counts, N_r, all_clones, sample_order, tp_dict,
-        which_transform, which_beta
+        which_transform, which_beta, clone_sums_to_sweep
     )
     chosen_QC = select_best_qc(qc_stats)
     print(f"Selected clone sum threshold = {chosen_QC}")
@@ -230,6 +232,7 @@ def CloneSearch(X_counts,
                  pval_or_fdr = 'fdr',
                  which_beta = 'constantBeta',
                  which_QC = 'strict',
+                 clone_sums_to_sweep = None,
                  which_transform = 'g',
                  make_qc_plot=True, 
                  fdr_mode = None,
@@ -248,6 +251,7 @@ def CloneSearch(X_counts,
     which_beta = use a constant beta or b parameter in g(f) for all samples in timeseries 
                     - alternatives: constantB, constantBeta. We recommend the constantBeta setting
     which_QC = include small clones or not - alternatives: ["strict", "tune", "none"]. Defaults to "strict".
+    clone_sums_to_sweep = which QC thresholds to check. Must be provided if which_QC == "tune". De
     which_transform = use default g(f) transform or log10 - alternatives: g(f), log10
     make_qc_plot = whether to render the QC-sweep diagnostic plot
     fdr_mode = either "legacy" or none. When set to legacy, it uses a manual FDR determination 
@@ -271,8 +275,9 @@ def CloneSearch(X_counts,
         # clones that are present at more than one timepoint
         chosen_QC = choose_best_clone_QC(
                 X_counts, N_r, all_clones, sample_order, tp_dict,
-                which_transform, which_beta, make_plot=make_qc_plot,
-                save_path = save_path
+                which_transform, which_beta, 
+                clone_sums_to_sweep = clone_sums_to_sweep,
+                make_plot=make_qc_plot, save_path = save_path
             )
         mask = X_counts.sum(axis=1) > chosen_QC
         print(f"Keeping {mask.sum()} clones with total count across timepoints > {chosen_QC}")
