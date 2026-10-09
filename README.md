@@ -95,7 +95,7 @@ The following arguments can be toggled by the user:
 - `--pval-or-fdr`: Whether to use p-value or FDR selection. Defaults to FDR. Options: `["fdr", "pvalue"]`.
 - `--beta-param-constant`: Whether to keep the beta parameter constant across samples. Defaults to `True`. We recommend leaving this to `True`.
 - `--which-QC`: How to select which clones are included in the analysis. 
-              Options are `["strict", "tune", "none"]`. With `strict`, clones are kept if present at count > 2 in > 1 timepoint. With `tune`, an adaptive QC is calculated that keeps a set of clones that respects the gaussian distribution assumption for $P(r)$. This is achieved by calculating the total sum of the counts of each clone, and sequentially removing small clones. The Kolmogorov-Smirnov test is used to determine the filter that gives the best correspondence between expected and observed $P(r)$ distributions. With QC = `none`, all clones are included. This makes the implementation very slow and may give noisier results.
+              Options are `["strict", "tune", "none"]`. With `strict`, clones are kept if present at count > 2 in > 1 timepoint. With `tune`, an adaptive QC threshold is calculated. The total count of a clone across the time series is calculated, and clones are kept if their sum is greater than threshold C (e.g. if C = 2, a clone will be kept if it appears in at least 2 samples, or has count 2 in one sample). The PCA and the distribution of $P_r$ for the kept clones are then calculated. A range of thresholds C are swept, and the selected threshold is the threshold at which the observed $P_r$ distribution is closest to the assumed gaussian distribution. The Kolmogorov-Smirnov test is used to determine the threshold C that gives the best fit between expected and observed $P(r)$ distributions. With QC = `none`, all clones are included. This makes the implementation very slow and may give noisier results.
               Defaults to `strict`.
 - `--transform`: Which transformation to apply to the frequencies. Options are `["g", "log"]`. Defaults to `g`, which implements $g(f)$.
 
@@ -126,6 +126,10 @@ clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_d
 ```
 
 ### Version history
+
+##### v0.2.1
+- Re-introduce old FDR strategy for backward compatibility
+- Improve testing coverage and speed
 
 ##### v0.2.0
 - Add option to tune clone QC depending on the sample

@@ -5,6 +5,7 @@ compute_qc_sweep_stats, select_best_qc, choose_best_clone_QC,
 CloneSearch_clustering / stable cluster labelling).
 '''
 import os
+import importlib
 import matplotlib
 matplotlib.use('Agg')  # never open a GUI window / block during tests
 
@@ -23,6 +24,8 @@ from clonesearch.CloneSearch import (
     _stable_cluster_labels,
 )
 
+clone_module = importlib.import_module('clonesearch.CloneSearch')
+
 
 @pytest.fixture(autouse=True)
 def _no_plt_show(monkeypatch):
@@ -34,7 +37,7 @@ def _no_plt_show(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda *args, **kwargs: None)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='module')
 def clone_search_inputs():
     metadata = pd.read_csv('test_data/input/metadata.txt')
     input_path = Path('test_data/input/')
@@ -49,38 +52,45 @@ def clone_search_inputs():
     timepoint_dictionary = dict(zip(metadata['sample'].tolist(), metadata['timepoint'].tolist()))
 
     return dict(
-        counts=counts_df.values,
-        Nr=counts_df.sum(axis=0).values,
+        X_counts=counts_df.values,
+        N_r=counts_df.sum(axis=0).values,
         all_clones=counts_df.index.tolist(),
         sample_order=sample_order,
-        timepoint_dictionary=timepoint_dictionary,
+        tp_dict=timepoint_dictionary,
     )
 
 class TestCloneSearch:
-    @pytest.mark.skipif(
-        not os.path.exists('test_data/expected_output/outliers.txt'),
-        reason="test data file not available"
-    )
     def test_cloneserch_overall(self, clone_search_inputs):
         expected_outliers = pd.read_csv(
-            'test_data/expected_output/outliers.txt', sep='\t', header=None
+            'test_data/expected_output/outliers_BH.txt', sep='\t', header=None
         )[0].tolist()
 
         outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
-            clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
-            0.05, 'fdr', 'constantBeta', 'strict', 'g'
+            **clone_search_inputs,
+            statistical_threshold=0.05, pval_or_fdr='fdr',
+            which_beta='constantBeta', which_QC='strict', which_transform='g',
         )
         assert len(outlier_list) == len(expected_outliers)
         assert sorted(outlier_list) == sorted(expected_outliers)
 
+    def test_cloneserch_overall_legacy(self, clone_search_inputs):
+            expected_outliers = pd.read_csv(
+                'test_data/expected_output/outliers_paper.txt', sep='\t', header=None
+            )[0].tolist()
+            outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
+                **clone_search_inputs,
+                statistical_threshold=0.05, pval_or_fdr='fdr',
+                which_beta='constantBeta', which_QC='strict',
+                which_transform='g', fdr_mode = 'legacy',
+            )
+            assert len(outlier_list) == len(expected_outliers)
+            assert sorted(outlier_list) == sorted(expected_outliers)
+
     def test_cloneserch_pval_does_not_crash(self, clone_search_inputs):
         outlier_list, pca_fit, R_thresh, X_transformed = CloneSearch(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
-            clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
-            0.05, 'pvalue', 'constantBeta', 'strict', 'g',
+            **clone_search_inputs,
+            statistical_threshold=0.05, pval_or_fdr='pvalue',
+            which_beta='constantBeta', which_QC='strict', which_transform='g',
             make_qc_plot=False,
         )
         assert isinstance(R_thresh, float)
@@ -89,10 +99,9 @@ class TestCloneSearch:
     def test_invalid_pval_or_fdr_raises_value_error(self, clone_search_inputs):
         with pytest.raises(ValueError, match='not recognised'):
             CloneSearch(
-                clone_search_inputs['counts'], clone_search_inputs['Nr'],
-                clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-                clone_search_inputs['timepoint_dictionary'],
-                0.05, 'pval', 'constantBeta', 'strict', 'g',
+                **clone_search_inputs,
+                statistical_threshold=0.05, pval_or_fdr='pval',
+                which_beta='constantBeta', which_QC='strict', which_transform='g',
                 make_qc_plot=False,
             )
 
@@ -102,18 +111,27 @@ class TestQCTransform:
     choose_best_clone_QC and CloneSearch.
     '''
 
-    def test_qc_transform_shapes_and_normalisation(self, clone_search_inputs):
+    @pytest.fixture
+    def mock_noise_fit(self, monkeypatch):
+        import importlib
+        clone_module = importlib.import_module('clonesearch.CloneSearch')
+        monkeypatch.setattr(
+            clone_module, 'get_sigma_and_b',
+            lambda *args, **kwargs: (1.0, 0.1)
+        )
+
+    def test_qc_transform_shapes_and_normalisation(self, clone_search_inputs, mock_noise_fit):
         clone_min = 0
-        qc_mask = clone_search_inputs['counts'].sum(axis=1) > clone_min
+        qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > clone_min
 
         qc_clones, X_transformed, X_transformed_norm = qc_transform(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
+            clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
+            clone_search_inputs['tp_dict'],
             'g', 'constantBeta', qc_mask,
         )
 
-        n_qc_clones = (clone_search_inputs['counts'].sum(axis=1) > clone_min).sum()
+        n_qc_clones = (clone_search_inputs['X_counts'].sum(axis=1) > clone_min).sum()
         assert len(qc_clones) == n_qc_clones
         assert X_transformed.shape == (n_qc_clones, len(clone_search_inputs['sample_order']))
         assert X_transformed_norm.shape == X_transformed.shape
@@ -122,44 +140,44 @@ class TestQCTransform:
         row_maxes = X_transformed_norm.max(axis=1)
         assert np.allclose(row_maxes, 0.0, atol=1e-8)
 
-    def test_qc_transform_stricter_threshold_keeps_fewer_or_equal_clones(self, clone_search_inputs):
+    def test_qc_transform_stricter_threshold_keeps_fewer_or_equal_clones(self, clone_search_inputs, mock_noise_fit):
 
-        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
+        qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         qc_clones_loose, _, _ = qc_transform(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
+            clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
+            clone_search_inputs['tp_dict'],
             'g', 'constantBeta', qc_mask,
         )
 
-        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 10
+        qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 10
         qc_clones_strict, _, _ = qc_transform(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
+            clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
+            clone_search_inputs['tp_dict'],
             'g', 'constantBeta', qc_mask
         )
         assert len(qc_clones_strict) <= len(qc_clones_loose)
         # every clone kept under the stricter threshold must also be kept under the loose one
         assert set(qc_clones_strict).issubset(set(qc_clones_loose))
 
-    def test_qc_transform_raises_on_invalid_transform(self, clone_search_inputs):
-        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
+    def test_qc_transform_raises_on_invalid_transform(self, clone_search_inputs, mock_noise_fit):
+        qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
-                clone_search_inputs['counts'], clone_search_inputs['Nr'],
+                clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
                 clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-                clone_search_inputs['timepoint_dictionary'],
+                clone_search_inputs['tp_dict'],
                 'not_a_real_transform', 'constantBeta', qc_mask,
             )
 
-    def test_qc_transform_raises_on_invalid_beta(self, clone_search_inputs):
-        qc_mask = clone_search_inputs['counts'].sum(axis=1) > 0
+    def test_qc_transform_raises_on_invalid_beta(self, clone_search_inputs, mock_noise_fit):
+        qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
-                clone_search_inputs['counts'], clone_search_inputs['Nr'],
+                clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
                 clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-                clone_search_inputs['timepoint_dictionary'],
+                clone_search_inputs['tp_dict'],
                 'g', 'not_a_real_beta', qc_mask,
             )
 
@@ -172,10 +190,10 @@ class TestQCSweep:
     def test_compute_qc_sweep_stats_shape_and_columns(self, clone_search_inputs):
         clone_sums_to_sweep = [0, 1, 2]
         qc_stats = compute_qc_sweep_stats(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
-            clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
-            'g', 'constantBeta',
+            clone_search_inputs['X_counts'][:10**3,:], clone_search_inputs['N_r'],
+            clone_search_inputs['all_clones'][:10**3], clone_search_inputs['sample_order'],
+            clone_search_inputs['tp_dict'],
+            'log10', 'constantBeta',
             clone_sums_to_sweep=clone_sums_to_sweep,
         )
 
@@ -259,25 +277,46 @@ class TestQCSweep:
         assert select_best_qc(qc_stats, stat_col='ksstats') == 1
         assert select_best_qc(qc_stats, stat_col='cmstats') == 0
 
-    def test_choose_best_clone_QC_returns_a_swept_value(self, clone_search_inputs):
+    def test_choose_best_clone_QC_returns_a_swept_value(self, clone_search_inputs, monkeypatch):
+        # This tests threshold selection, not another full QC sweep.
+        expected_sweep = list(range(0, 15)) + [20]
+        qc_stats = pd.DataFrame({
+            'QC': expected_sweep,
+            'ksstats': np.arange(len(expected_sweep)),
+        })
+
+        def fake_sweep(*args, **kwargs):
+            assert kwargs['clone_sums_to_sweep'] is None
+            return qc_stats
+
+        monkeypatch.setattr(clone_module, 'compute_qc_sweep_stats', fake_sweep)
         chosen_QC = choose_best_clone_QC(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
+            clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
+            clone_search_inputs['tp_dict'],
             'g', 'constantBeta',
             make_plot=False,
         )
-        expected_sweep = list(range(0, 15)) + [20]
         assert chosen_QC in expected_sweep
 
-    def test_choose_best_clone_QC_make_plot_true_does_not_raise(self, clone_search_inputs):
-        # with the Agg backend + patched plt.show, this should run headlessly
+    def test_choose_best_clone_QC_make_plot_true_does_not_raise(self, clone_search_inputs, monkeypatch):
+        # Plot pre-computed statistics rather than repeating the QC sweep.
+        to_sweep = list(range(0, 5)) + [20]
+        qc_stats = pd.DataFrame({
+            'QC': to_sweep,
+            'ksstats': np.linspace(0.1, 0.3, len(to_sweep)),
+            'cmstats': np.linspace(0.2, 0.4, len(to_sweep)),
+            'andersonstats': np.linspace(0.3, 0.5, len(to_sweep)),
+        })
+        monkeypatch.setattr(clone_module, 'compute_qc_sweep_stats',
+                            lambda *args, **kwargs: qc_stats)
         chosen_QC = choose_best_clone_QC(
-            clone_search_inputs['counts'], clone_search_inputs['Nr'],
+            clone_search_inputs['X_counts'], clone_search_inputs['N_r'],
             clone_search_inputs['all_clones'], clone_search_inputs['sample_order'],
-            clone_search_inputs['timepoint_dictionary'],
+            clone_search_inputs['tp_dict'],
             'g', 'constantBeta',
             make_plot=True,
+            clone_sums_to_sweep=to_sweep
         )
         assert isinstance(chosen_QC, (int, np.integer))
 

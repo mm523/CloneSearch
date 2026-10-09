@@ -1,6 +1,7 @@
 __pycache__
 .DS_Store
 test_data/output
+test_data/output_strict
 examples/annotated_clones
 *gz
 *.egg*
