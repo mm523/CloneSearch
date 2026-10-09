@@ -128,7 +128,7 @@ clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_d
 ### Version history
 
 ##### v0.2.1
-- Re-introduce old FDR strategy
+- Re-introduce old FDR strategy for backward compatibility
 - Improve testing coverage and speed
 
 ##### v0.2.0
