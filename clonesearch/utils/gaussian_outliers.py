@@ -51,6 +51,12 @@ def find_fdr_thresh_BH(radii, dims, fdr):
     not one of the observed radii — so the > vs >= boundary ambiguity in 
     find_gaussian_outliers does not arise.
     '''
+    if not 0 < fdr <= 1:
+        raise ValueError("FDR must be between 0 and 1")
+
+    if fdr == 1:
+        return -np.inf
+
     n = len(radii)
     p_values = 1 - theoretical_cdf(radii, dims)
     sorted_p = np.sort(p_values)                        # ascending
@@ -66,6 +72,11 @@ def find_fdr_thresh_manual(radii, dims, fdr):
     Find the outlier points using an FDR threshold.
     Manually takes the ratio of expected and observed curves.
     '''
+    if not 0 < fdr <= 1:
+        raise ValueError("FDR must be between 0 and 1")
+    
+    if fdr == 1:
+        return -np.inf
 
     sorted_r = sorted(set(radii))
     theory = theoretical_cdf(sorted_r, dims)
