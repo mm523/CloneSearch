@@ -37,7 +37,7 @@ def _no_plt_show(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda *args, **kwargs: None)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='module')
 def clone_search_inputs():
     metadata = pd.read_csv('test_data/input/metadata.txt')
     input_path = Path('test_data/input/')
@@ -111,7 +111,16 @@ class TestQCTransform:
     choose_best_clone_QC and CloneSearch.
     '''
 
-    def test_qc_transform_shapes_and_normalisation(self, clone_search_inputs):
+    @pytest.fixture
+    def mock_noise_fit(self, monkeypatch):
+        import importlib
+        clone_module = importlib.import_module('clonesearch.CloneSearch')
+        monkeypatch.setattr(
+            clone_module, 'get_sigma_and_b',
+            lambda *args, **kwargs: (1.0, 0.1)
+        )
+
+    def test_qc_transform_shapes_and_normalisation(self, clone_search_inputs, mock_noise_fit):
         clone_min = 0
         qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > clone_min
 
@@ -131,7 +140,7 @@ class TestQCTransform:
         row_maxes = X_transformed_norm.max(axis=1)
         assert np.allclose(row_maxes, 0.0, atol=1e-8)
 
-    def test_qc_transform_stricter_threshold_keeps_fewer_or_equal_clones(self, clone_search_inputs):
+    def test_qc_transform_stricter_threshold_keeps_fewer_or_equal_clones(self, clone_search_inputs, mock_noise_fit):
 
         qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         qc_clones_loose, _, _ = qc_transform(
@@ -152,7 +161,7 @@ class TestQCTransform:
         # every clone kept under the stricter threshold must also be kept under the loose one
         assert set(qc_clones_strict).issubset(set(qc_clones_loose))
 
-    def test_qc_transform_raises_on_invalid_transform(self, clone_search_inputs):
+    def test_qc_transform_raises_on_invalid_transform(self, clone_search_inputs, mock_noise_fit):
         qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
@@ -162,7 +171,7 @@ class TestQCTransform:
                 'not_a_real_transform', 'constantBeta', qc_mask,
             )
 
-    def test_qc_transform_raises_on_invalid_beta(self, clone_search_inputs):
+    def test_qc_transform_raises_on_invalid_beta(self, clone_search_inputs, mock_noise_fit):
         qc_mask = clone_search_inputs['X_counts'].sum(axis=1) > 0
         with pytest.raises(ValueError, match='not implemented'):
             qc_transform(
