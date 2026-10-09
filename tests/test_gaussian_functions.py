@@ -7,7 +7,8 @@ from scipy.integrate import quad
 from clonesearch.utils.gaussian_outliers import (
     find_radius,
     find_radius_outlier_thresh_pval,
-    find_fdr_thresh,
+    find_fdr_thresh_BH,
+    find_fdr_thresh_manual,
     find_gaussian_outliers,
     theoretical_cdf,
     P_r,
@@ -96,7 +97,7 @@ class TestFindFdrThresh:
     def test_returns_a_float(self):
         rng = np.random.default_rng(0)
         radii = np.sqrt(rng.chisquare(df=4, size=200))
-        thresh = find_fdr_thresh(radii, dims=4, fdr=0.05)
+        thresh = find_fdr_thresh_BH(radii, dims=4, fdr=0.05)
         assert isinstance(thresh, float)
 
     def test_null_data_threshold_equals_maximum(self):
@@ -106,7 +107,7 @@ class TestFindFdrThresh:
         '''
         rng = np.random.default_rng(42)
         radii = np.sqrt(rng.chisquare(df=4, size=500))
-        thresh = find_fdr_thresh(radii, dims=4, fdr=0.05)
+        thresh = find_fdr_thresh_BH(radii, dims=4, fdr=0.05)
         assert thresh == pytest.approx(np.max(radii))
 
     def test_obvious_outliers_exceed_threshold(self):
@@ -118,7 +119,7 @@ class TestFindFdrThresh:
         null_radii    = np.sqrt(rng.chisquare(df=4, size=300))
         outlier_radii = rng.uniform(20, 25, size=20)
         radii = np.concatenate([null_radii, outlier_radii])
-        thresh = find_fdr_thresh(radii, dims=4, fdr=0.05)
+        thresh = find_fdr_thresh_BH(radii, dims=4, fdr=0.05)
         assert thresh <= np.min(outlier_radii)
 
     def test_single_unique_radius_triggers_fallback(self):
@@ -127,13 +128,58 @@ class TestFindFdrThresh:
         The returned threshold should equal the only observed value.
         '''
         radii = np.full(50, 3.0)
-        thresh = find_fdr_thresh(radii, dims=4, fdr=0.05)
+        thresh = find_fdr_thresh_BH(radii, dims=4, fdr=0.05)
         assert thresh == pytest.approx(3.0)
 
     def test_threshold_within_range_of_radii(self):
         rng = np.random.default_rng(99)
         radii = np.sqrt(rng.chisquare(df=6, size=100))
-        thresh = find_fdr_thresh(radii, dims=6, fdr=0.05)
+        thresh = find_fdr_thresh_BH(radii, dims=6, fdr=0.05)
+        assert np.min(radii) <= thresh <= np.max(radii)
+
+class TestFindFdrThreshLegacy:
+
+    def test_returns_a_float(self):
+        rng = np.random.default_rng(0)
+        radii = np.sqrt(rng.chisquare(df=4, size=200))
+        thresh = find_fdr_thresh_manual(radii, dims=4, fdr=0.05)
+        assert isinstance(thresh, float)
+
+    def test_null_data_threshold_equals_maximum(self):
+        '''
+        For purely null data, the FDR criterion is never met, idx=-1 fires,
+        and the threshold equals the maximum observed radius.
+        '''
+        rng = np.random.default_rng(42)
+        radii = np.sqrt(rng.chisquare(df=4, size=500))
+        thresh = find_fdr_thresh_manual(radii, dims=4, fdr=0.05)
+        assert thresh == pytest.approx(np.max(radii))
+
+    def test_obvious_outliers_exceed_threshold(self):
+        '''
+        With 20 very large radii injected into a null dataset, the threshold
+        should fall below all injected values so every outlier is captured.
+        '''
+        rng = np.random.default_rng(7)
+        null_radii    = np.sqrt(rng.chisquare(df=4, size=300))
+        outlier_radii = rng.uniform(20, 25, size=20)
+        radii = np.concatenate([null_radii, outlier_radii])
+        thresh = find_fdr_thresh_manual(radii, dims=4, fdr=0.05)
+        assert thresh <= np.min(outlier_radii)
+
+    def test_single_unique_radius_triggers_fallback(self):
+        '''
+        All identical radii → division by zero in the ratio → IndexError fallback.
+        The returned threshold should equal the only observed value.
+        '''
+        radii = np.full(50, 3.0)
+        thresh = find_fdr_thresh_manual(radii, dims=4, fdr=0.05)
+        assert thresh == pytest.approx(3.0)
+
+    def test_threshold_within_range_of_radii(self):
+        rng = np.random.default_rng(99)
+        radii = np.sqrt(rng.chisquare(df=6, size=100))
+        thresh = find_fdr_thresh_manual(radii, dims=6, fdr=0.05)
         assert np.min(radii) <= thresh <= np.max(radii)
 
 class TestFindGaussianOutliers:

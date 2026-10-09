@@ -44,7 +44,7 @@ def find_radius_outlier_thresh_pval(dimensions, pval = 0.025):
 
     return r_thresh
 
-def find_fdr_thresh(radii, dims, fdr):
+def find_fdr_thresh_BH(radii, dims, fdr):
     '''
     Find the outlier points using a BH-based FDR threshold. 
     Returns an analytical threshold from the theoretical distribution — 
@@ -61,9 +61,27 @@ def find_fdr_thresh(radii, dims, fdr):
     k = int(np.where(below)[0][-1]) + 1                 # largest k (1-indexed)
     return float(find_radius_outlier_thresh_pval(dims, k * fdr / n))
 
-def find_gaussian_outliers(pca_fit, statistical_threshold = 0.05, use_FDR = True):
+def find_fdr_thresh_manual(radii, dims, fdr):
     '''
-    Find the outlier sequences given a whitened and centered PCA
+    Find the outlier points using an FDR threshold.
+    Manually takes the ratio of expected and observed curves.
+    '''
+
+    sorted_r = sorted(set(radii))
+    theory = theoretical_cdf(sorted_r, dims)
+    ecdf_real = ecdf(radii)
+    try:
+        idx = np.where((1-theory)/(1-ecdf_real.cdf.probabilities) < fdr)[0][0]
+    except:
+        idx = -1
+    radius_thresh = sorted_r[idx]
+
+    return radius_thresh
+
+def find_gaussian_outliers(pca_fit, statistical_threshold = 0.05, use_FDR = True, fdr_mode = None):
+    '''
+    Find the outlier sequences given a whitened and centered PCA.
+    Set fdr_type = 'legacy' to reproduce paper results exactly.
     '''
 
     dims = pca_fit.shape[1]
@@ -72,7 +90,10 @@ def find_gaussian_outliers(pca_fit, statistical_threshold = 0.05, use_FDR = True
     if not use_FDR:
         radius_thresh = find_radius_outlier_thresh_pval(dims, statistical_threshold)
     elif use_FDR:
-        radius_thresh = find_fdr_thresh(radii, dims, statistical_threshold)
+        if fdr_mode == 'legacy':
+            radius_thresh = find_fdr_thresh_manual(radii, dims, statistical_threshold)
+        else:
+            radius_thresh = find_fdr_thresh_BH(radii, dims, statistical_threshold)
 
     outlier_vector = radii > radius_thresh
 
