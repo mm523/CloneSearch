@@ -127,6 +127,10 @@ clonesearch-clustering --clone-list test_data/output/outliers.txt --input test_d
 
 ### Version history
 
+##### v0.2.1
+- Re-introduce old FDR strategy
+- Improve testing coverage and speed
+
 ##### v0.2.0
 - Add option to tune clone QC depending on the sample
 
