@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from clonesearch.utils.get_params import get_sigma_and_b
 from clonesearch.utils.normalisation_functions import noise_by_size_norm, log10_transform
 from clonesearch.utils.gaussian_outliers import find_gaussian_outliers, find_radius
-
+from clonesearch.plotting.clone_selection import plot_qc_sweep
 
 # Used whenever a QC sweep is requested without an explicit set of thresholds.
 # Each threshold retains clones with summed counts STRICTLY greater than it.
@@ -139,34 +139,6 @@ def select_best_qc(qc_stats_df, stat_col='ksstats'):
     '''
     tied = qc_stats_df.loc[qc_stats_df[stat_col] == qc_stats_df[stat_col].min()]
     return tied.sort_values('QC')['QC'].values[0]
-
-
-def plot_qc_sweep(qc_stats_df, chosen_QC, save_path = None):
-    '''
-    Plot KS / Cramer-von Mises / Anderson-Darling statistics across the
-    QC sweep, with a marker at the chosen QC threshold.
-    '''
-    ax = plt.subplot()
-    ax.plot(qc_stats_df['QC'], qc_stats_df['ksstats'],
-            c='tab:blue', marker ='o', 
-            label='Kolmogorov-Smirnov D-statistic')
-    ax1 = ax.twinx()
-    ax1.plot(qc_stats_df['QC'], qc_stats_df['cmstats'],
-             c='tab:orange', marker ='o', 
-             label='Cramér-von Mises W²-statistic')
-    ax1.plot(qc_stats_df['QC'], qc_stats_df['andersonstats'],
-             c='tab:purple', marker ='o', 
-             label='Anderson-Darling A²-statistic')
-
-    lines1, labels1 = ax.get_legend_handles_labels()
-    lines2, labels2 = ax1.get_legend_handles_labels()
-    ax.legend(lines1 + lines2, labels1 + labels2, loc='best')
-    ax.axvline(chosen_QC, ls=':', c='k')
-    ax.set_xlabel('Minimum total clone count')
-
-    if save_path is not None:
-        plt.savefig(f'{save_path}/cloneQC_threshold_sweep.pdf', bbox_inches = 'tight')
-    plt.show()
 
 
 def choose_best_clone_QC(counts, N_r, all_clones, sample_order, tp_dict,
